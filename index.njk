@@ -13,11 +13,11 @@ eleventyComputed:
 {% block content %}
   {% if pagedPosts and pagedPosts | length %}
     {% set featurePost = pagedPosts[0] %}
-    {% set featureImage = featurePost.data.image %}
+    {% set featureImage = featurePost.data.image | default("") | trim %}
     {% set featureExcerpt = featurePost.data.description or (featurePost.templateContent | striptags | truncate(260, true, "...")) %}
     <article class="feature-post">
       <a class="feature-post__link" href="{{ featurePost.url }}">
-        {% if featureImage %}
+        {% if featureImage and featureImage | length > 4 %}
           <div class="feature-post__media">
             <img src="{{ featureImage }}" alt="{{ featurePost.data.title }} featured image" loading="lazy">
           </div>
@@ -38,11 +38,11 @@ eleventyComputed:
     <section class="post-grid">
       {% for post in pagedPosts %}
         {% if not loop.first %}
-          {% set cardImage = post.data.image %}
+          {% set cardImage = post.data.image | default("") | trim %}
           {% set cardExcerpt = post.data.description or (post.templateContent | striptags | truncate(150, true, "...")) %}
           <article class="post-card">
             <a href="{{ post.url }}">
-              {% if cardImage %}
+              {% if cardImage and cardImage | length > 4 %}
                 <div class="post-card__media">
                   <img src="{{ cardImage }}" alt="{{ post.data.title }} teaser image" loading="lazy">
                 </div>

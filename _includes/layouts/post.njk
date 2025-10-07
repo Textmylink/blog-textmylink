@@ -1,7 +1,7 @@
 {% extends "layouts/base.njk" %}
 {% set postTitle = title or site.title %}
 {% set postDescription = description or site.description %}
-{% set postImage = image or site.image %}
+{% set postImage = (image | default("") | trim) or site.image %}
 {% set canonicalUrl = site.url ~ page.url %}
 {% set previousPost = collections.posts | getPreviousCollectionItem(page) %}
 {% set nextPost = collections.posts | getNextCollectionItem(page) %}
@@ -48,7 +48,7 @@
 
 {% block content %}
   {% set heroImage = image | default("") | trim %}
-  {% if heroImage %}
+  {% if heroImage and heroImage | length > 4 %}
     <figure class="post-hero">
       <img src="{{ heroImage }}" alt="{{ postTitle }} featured image">
     </figure>
