@@ -1,0 +1,27 @@
+---
+layout: null
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TextMyLink CMS</title>
+    <link rel="stylesheet" href="https://unpkg.com/netlify-cms@^2.10.0/dist/netlify-cms.min.css">
+  </head>
+  <body>
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script>
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.on("init", function (user) {
+          if (!user) {
+            window.netlifyIdentity.on("login", function () {
+              document.location.href = "/admin/";
+            });
+          }
+        });
+      }
+    </script>
+    <script src="https://unpkg.com/netlify-cms-app@latest/dist/netlify-cms.js"></script>
+  </body>
+</html>

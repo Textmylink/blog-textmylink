@@ -1,0 +1,11 @@
+{
+  "title": "TextMyLink Blog",
+  "description": "Insights, product updates, and resources from the TextMyLink team.",
+  "author": "Daniel Schulman",
+  "url": "https://blog.textmylink.com",
+  "image": "/static/uploads/default-social.jpg",
+  "organization": {
+    "name": "TextMyLink",
+    "logo": "/static/uploads/logo.png"
+  }
+}

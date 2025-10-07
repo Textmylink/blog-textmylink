@@ -1,0 +1,13 @@
+[build]
+  command = "npx eleventy"
+  publish = "_site"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin/index.html"
+  status = 301

@@ -1,0 +1,24 @@
+---
+layout: layouts/base.njk
+title: "Browse by Tag"
+description: "Explore TextMyLink articles grouped by topic."
+permalink: "/tags/index.html"
+---
+{% set tagList = collections.tagList %}
+<section class="list hero">
+  <h1>Browse by Tag</h1>
+  <p>Select a tag to discover related articles.</p>
+</section>
+<section class="tag-cloud">
+  {% if tagList and tagList | length %}
+    <ul class="tag-cloud__list">
+      {% for tag in tagList %}
+        <li>
+          <a href="/tag/{{ tag | slug }}/">{{ tag }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No tags available yet.</p>
+  {% endif %}
+</section>

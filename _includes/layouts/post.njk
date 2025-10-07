@@ -1,0 +1,94 @@
+{% extends "layouts/base.njk" %}
+{% set postTitle = title or site.title %}
+{% set postDescription = description or site.description %}
+{% set postImage = image or site.image %}
+{% set canonicalUrl = site.url ~ page.url %}
+{% set previousPost = collections.posts | getPreviousCollectionItem(page) %}
+{% set nextPost = collections.posts | getNextCollectionItem(page) %}
+
+{% block head %}
+  {{ super() }}
+  <link rel="canonical" href="{{ canonicalUrl }}">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="{{ postTitle }}">
+  <meta property="og:description" content="{{ postDescription }}">
+  <meta property="og:image" content="{{ postImage }}">
+  <meta property="og:url" content="{{ canonicalUrl }}">
+  <meta name="twitter:title" content="{{ postTitle }}">
+  <meta name="twitter:description" content="{{ postDescription }}">
+  <meta name="twitter:image" content="{{ postImage }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+    {{
+      {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "mainEntityOfPage": canonicalUrl,
+        "headline": postTitle,
+        "description": postDescription,
+        "image": postImage,
+        "datePublished": date | isoDate,
+        "dateModified": (page.date or date) | isoDate,
+        "author": {
+          "@type": "Person",
+          "name": author or site.author
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": site.organization.name,
+          "logo": {
+            "@type": "ImageObject",
+            "url": site.organization.logo
+          }
+        }
+      } | dump | safe
+    }}
+  </script>
+{% endblock %}
+
+{% block content %}
+  {% if image %}
+    <figure class="post-hero">
+      <img src="{{ image }}" alt="{{ postTitle }} featured image">
+    </figure>
+  {% endif %}
+  <header class="post-header">
+    <p class="post-meta">
+      <time datetime="{{ date | isoDate }}">{{ date | readableDate }}</time>
+      {% if author %}
+        &nbsp;•&nbsp; {{ author }}
+      {% endif %}
+    </p>
+    <h1>{{ postTitle }}</h1>
+    {% if postDescription %}
+      <p>{{ postDescription }}</p>
+    {% endif %}
+  </header>
+  <article class="post-body">
+    {{ content | safe }}
+  </article>
+  <nav class="neighbor-posts" aria-label="Post pagination">
+    {% if previousPost %}
+      <a class="neighbor-posts__link neighbor-posts__link--prev" href="{{ previousPost.url }}">
+        <span class="neighbor-posts__label">Previous Post</span>
+        <span class="neighbor-posts__title">{{ previousPost.data.title }}</span>
+      </a>
+    {% else %}
+      <span class="neighbor-posts__placeholder">
+        <span class="neighbor-posts__label">Previous Post</span>
+        <span class="neighbor-posts__title">You’re reading the newest story.</span>
+      </span>
+    {% endif %}
+    {% if nextPost %}
+      <a class="neighbor-posts__link neighbor-posts__link--next" href="{{ nextPost.url }}">
+        <span class="neighbor-posts__label">Next Post</span>
+        <span class="neighbor-posts__title">{{ nextPost.data.title }}</span>
+      </a>
+    {% else %}
+      <span class="neighbor-posts__placeholder">
+        <span class="neighbor-posts__label">Next Post</span>
+        <span class="neighbor-posts__title">More stories coming soon.</span>
+      </span>
+    {% endif %}
+  </nav>
+{% endblock %}

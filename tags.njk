@@ -1,0 +1,41 @@
+---
+pagination:
+  data: collections.tagList
+  size: 1
+  alias: currentTag
+permalink: false
+eleventyComputed:
+  permalink: "/tag/{{ currentTag | slug }}/index.html"
+  title: "{{ currentTag }} | Tags | {{ site.title }}"
+  description: "Browse articles tagged '{{ currentTag }}' on {{ site.title }}."
+---
+{% extends "layouts/base.njk" %}
+{% set tagPosts = collections[currentTag] | reverse %}
+{% set canonicalUrl = site.url ~ page.url %}
+
+{% block head %}
+  {{ super() }}
+  <link rel="canonical" href="{{ canonicalUrl }}">
+{% endblock %}
+
+{% block content %}
+  <section class="list hero">
+    <h1>Posts tagged "{{ currentTag }}"</h1>
+    <p>All articles published under the "{{ currentTag }}" tag.</p>
+  </section>
+  <section class="list">
+    {% for post in tagPosts %}
+      <article class="post-card">
+        <h2 class="post-card__title">
+          <a href="{{ post.url }}">{{ post.data.title }}</a>
+        </h2>
+        <p class="post-card__meta">
+          <time datetime="{{ post.date | isoDate }}">{{ post.date | readableDate }}</time>
+        </p>
+        {% if post.data.description %}
+          <p class="post-card__excerpt">{{ post.data.description }}</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </section>
+{% endblock %}
