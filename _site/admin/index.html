@@ -4,10 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TextMyLink CMS</title>
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/netlify-cms@^2.15.0/dist/netlify-cms.css"
-    >
   </head>
   <body>
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
@@ -26,17 +22,21 @@
       window.process = window.process || { env: { NODE_ENV: "production" } };
       window.CMS_MANUAL_INIT = true;
     </script>
-    <script src="https://unpkg.com/netlify-cms@^2.15.0/dist/netlify-cms.js"></script>
+    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
     <script>
-      if (window.CMS && typeof window.CMS.init === "function") {
-        window.CMS.init();
-      } else {
-        console.error("Netlify CMS failed to load.");
-        document.body.insertAdjacentHTML(
-          "beforeend",
-          "<p>Netlify CMS failed to load. Check the browser console for details.</p>"
-        );
-      }
+      (function initCms() {
+        if (window.CMS && typeof window.CMS.init === "function") {
+          window.CMS.init();
+          return;
+        }
+        if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
+          window.NetlifyCmsApp.init();
+          return;
+        }
+        const message = "Netlify CMS failed to load. Check the browser console for details.";
+        console.error(message);
+        document.body.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
+      })();
     </script>
   </body>
 </html>
