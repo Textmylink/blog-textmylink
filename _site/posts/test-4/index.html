@@ -76,6 +76,12 @@
         position: sticky;
         top: 0;
         z-index: 999;
+        transition: transform 0.3s ease;
+        will-change: transform;
+      }
+
+      .site-header--hidden {
+        transform: translateY(-100%);
       }
 
       .site-header__inner {
@@ -547,10 +553,10 @@
   </article>
   <nav class="neighbor-posts" aria-label="Post pagination">
     
-      <span class="neighbor-posts__placeholder">
+      <a class="neighbor-posts__link neighbor-posts__link--prev" href="/posts/phone-test/">
         <span class="neighbor-posts__label">Previous Post</span>
-        <span class="neighbor-posts__title">You're reading the newest story.</span>
-      </span>
+        <span class="neighbor-posts__title">Phone test</span>
+      </a>
     
     
       <a class="neighbor-posts__link neighbor-posts__link--next" href="/posts/test-3/">
@@ -566,6 +572,36 @@
         <p>&copy; TextMyLink 2025. All rights reserved.</p>
       </div>
     </footer>
+    <script>
+      (function () {
+        const header = document.querySelector(".site-header");
+        if (!header) return;
+
+        let lastScroll = window.scrollY;
+        let ticking = false;
+        const threshold = 80;
+
+        function updateHeader() {
+          const currentScroll = window.scrollY;
+
+          if (currentScroll > lastScroll && currentScroll > threshold) {
+            header.classList.add("site-header--hidden");
+          } else {
+            header.classList.remove("site-header--hidden");
+          }
+
+          lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+          ticking = false;
+        }
+
+        window.addEventListener("scroll", () => {
+          if (!ticking) {
+            window.requestAnimationFrame(updateHeader);
+            ticking = true;
+          }
+        }, { passive: true });
+      })();
+    </script>
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
       if (window.netlifyIdentity) {

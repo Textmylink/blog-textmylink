@@ -76,6 +76,12 @@
         position: sticky;
         top: 0;
         z-index: 999;
+        transition: transform 0.3s ease;
+        will-change: transform;
+      }
+
+      .site-header--hidden {
+        transform: translateY(-100%);
       }
 
       .site-header__inner {
@@ -566,6 +572,36 @@
         <p>&copy; TextMyLink 2025. All rights reserved.</p>
       </div>
     </footer>
+    <script>
+      (function () {
+        const header = document.querySelector(".site-header");
+        if (!header) return;
+
+        let lastScroll = window.scrollY;
+        let ticking = false;
+        const threshold = 80;
+
+        function updateHeader() {
+          const currentScroll = window.scrollY;
+
+          if (currentScroll > lastScroll && currentScroll > threshold) {
+            header.classList.add("site-header--hidden");
+          } else {
+            header.classList.remove("site-header--hidden");
+          }
+
+          lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+          ticking = false;
+        }
+
+        window.addEventListener("scroll", () => {
+          if (!ticking) {
+            window.requestAnimationFrame(updateHeader);
+            ticking = true;
+          }
+        }, { passive: true });
+      })();
+    </script>
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
       if (window.netlifyIdentity) {
