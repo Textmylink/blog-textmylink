@@ -43,6 +43,35 @@ module.exports = function (eleventyConfig) {
     return new Date(value).toISOString();
   });
 
+  eleventyConfig.addFilter("toAbsoluteUrl", (url) => {
+    if (!url) return "";
+    const trimmedSiteUrl = (site.url || "").replace(/\/+$/, "");
+    if (/^https?:\/\//i.test(url)) {
+      return url;
+    }
+    if (url.startsWith("//")) {
+      return `https:${url}`;
+    }
+    const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+    return `${trimmedSiteUrl}${normalizedPath}`;
+  });
+
+  eleventyConfig.addFilter("excerpt", (content, length = 155) => {
+    if (!content) return "";
+    const text = String(content)
+      .replace(/<[^>]*>?/gm, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!text) return "";
+    if (text.length <= length) return text;
+    return `${text.slice(0, length).trim()}…`;
+  });
+
+  eleventyConfig.addFilter("filterTags", (tags = []) => {
+    const excluded = new Set(["all", "nav", "post", "posts"]);
+    return (tags || []).filter((tag) => !excluded.has(tag));
+  });
+
   eleventyConfig.addLayoutAlias("post.njk", "layouts/post.njk");
   eleventyConfig.addLayoutAlias("base.njk", "layouts/base.njk");
 

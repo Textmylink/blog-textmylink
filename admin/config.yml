@@ -16,12 +16,28 @@ collections:
     fields:
       - { label: "Title", name: "title", widget: "string" }
       - { label: "Description", name: "description", widget: "text" }
+      - label: "SEO Title"
+        name: "seo_title"
+        widget: "string"
+        required: false
+        hint: "Overrides the page title in search/social previews (55-60 characters recommended)."
+      - label: "SEO Description"
+        name: "seo_description"
+        widget: "text"
+        required: false
+        hint: "Optional summary for search/social snippets (up to ~155 characters)."
       - { label: "Publish Date", name: "date", widget: "datetime" }
       - label: "Tags"
         name: "tags"
         widget: "list"
         default: ["blog"]
       - { label: "Featured Image", name: "image", widget: "image", allow_multiple: false }
+      - label: "Social Share Image"
+        name: "seo_image"
+        widget: "image"
+        required: false
+        allow_multiple: false
+        hint: "Optional override for the Open Graph/Twitter share image."
       - { label: "Author", name: "author", widget: "string", default: "Daniel Schulman" }
       - { label: "Body", name: "body", widget: "markdown" }
       - label: "Layout"

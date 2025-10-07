@@ -1,23 +1,32 @@
 {% extends "layouts/base.njk" %}
+{% set heroImage = image | default("") | trim %}
+{% set shareImage = seo_image or heroImage or site.image %}
+{% set shareImageAbsolute = shareImage | toAbsoluteUrl %}
+{% if shareImageAbsolute %}
+  {% set structuredImages = [shareImageAbsolute] %}
+{% else %}
+  {% set structuredImages = [] %}
+{% endif %}
 {% set postTitle = title or site.title %}
-{% set postDescription = description or site.description %}
-{% set postImage = (image | default("") | trim) or site.image %}
-{% set canonicalUrl = site.url ~ page.url %}
+{% set displayDescription = description or (content | excerpt(160)) %}
+{% set canonicalUrl = page.url | toAbsoluteUrl %}
 {% set previousPost = collections.posts | getPreviousCollectionItem(page) %}
 {% set nextPost = collections.posts | getNextCollectionItem(page) %}
 
 {% block head %}
+  {% set og_type = "article" %}
+  {% set filteredTags = (tags | filterTags) %}
+  {% set primarySection = filteredTags | first %}
+  {% if filteredTags and filteredTags | length %}
+    {% set keywordString = filteredTags | join(', ') %}
+  {% else %}
+    {% set keywordString = "" %}
+  {% endif %}
+  {% set structuredDescription = (seo_description or description or content | excerpt(180) or site.description) %}
   {{ super() }}
-  <link rel="canonical" href="{{ canonicalUrl }}">
-  <meta property="og:type" content="article">
-  <meta property="og:title" content="{{ postTitle }}">
-  <meta property="og:description" content="{{ postDescription }}">
-  <meta property="og:image" content="{{ postImage }}">
-  <meta property="og:url" content="{{ canonicalUrl }}">
-  <meta name="twitter:title" content="{{ postTitle }}">
-  <meta name="twitter:description" content="{{ postDescription }}">
-  <meta name="twitter:image" content="{{ postImage }}">
-  <meta name="twitter:card" content="summary_large_image">
+  {% if filteredTags and filteredTags | length %}
+    <meta name="keywords" content="{{ filteredTags | join(', ') }}">
+  {% endif %}
   <script type="application/ld+json">
     {{
       {
@@ -25,8 +34,11 @@
         "@type": "BlogPosting",
         "mainEntityOfPage": canonicalUrl,
         "headline": postTitle,
-        "description": postDescription,
-        "image": postImage,
+        "description": structuredDescription,
+        "image": structuredImages,
+        "url": canonicalUrl,
+        "articleSection": primarySection,
+        "keywords": keywordString,
         "datePublished": date | isoDate,
         "dateModified": (page.date or date) | isoDate,
         "author": {
@@ -38,7 +50,7 @@
           "name": site.organization.name,
           "logo": {
             "@type": "ImageObject",
-            "url": site.organization.logo
+            "url": site.organization.logo | toAbsoluteUrl
           }
         }
       } | dump | safe
@@ -47,7 +59,6 @@
 {% endblock %}
 
 {% block content %}
-  {% set heroImage = image | default("") | trim %}
   {% if heroImage and heroImage | length > 4 %}
     <figure class="post-hero">
       <img src="{{ heroImage }}" alt="{{ postTitle }} featured image">
@@ -61,8 +72,8 @@
       {% endif %}
     </p>
     <h1>{{ postTitle }}</h1>
-    {% if postDescription %}
-      <p>{{ postDescription }}</p>
+    {% if displayDescription %}
+      <p>{{ displayDescription }}</p>
     {% endif %}
   </header>
   <article class="post-body">
