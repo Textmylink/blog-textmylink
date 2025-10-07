@@ -1,11 +1,12 @@
 ---
-layout: post.njk
-title: "Hello World"
-description: "This is your first blog post on TextMyLink Blog."
+title: Hello World
+description: This is your first blog post on TextMyLink Blog.
 date: 2025-10-07
-tags: ["blog"]
-image: "/uploads/hello-world.jpg"
-author: "Daniel Schulman"
+tags:
+  - blog
+image: /uploads/textmylink-logo.webp
+author: Daniel Schulman
+layout: post.njk
 ---
 
 New Blog!
