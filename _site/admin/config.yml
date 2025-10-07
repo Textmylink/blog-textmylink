@@ -3,8 +3,8 @@ backend:
   branch: main
 media_folder: "static/uploads"
 public_folder: "/uploads"
-site_url: "https://blog.textmylink.com"
-display_url: "https://blog.textmylink.com"
+site_url: "https://blog-textmylink.netlify.app"
+display_url: "https://blog-textmylink.netlify.app"
 publish_mode: editorial_workflow
 collections:
   - name: "blog"
