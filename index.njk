@@ -14,11 +14,13 @@ eleventyComputed:
   {% if pagedPosts and pagedPosts | length %}
     {% set featurePost = pagedPosts[0] %}
     {% set featureImage = featurePost.data.image %}
-    {% set featureExcerpt = featurePost.data.description or (featurePost.templateContent | striptags | truncate(260, true, "…")) %}
+    {% set featureExcerpt = featurePost.data.description or (featurePost.templateContent | striptags | truncate(260, true, "...")) %}
     <article class="feature-post">
       <a class="feature-post__link" href="{{ featurePost.url }}">
         {% if featureImage %}
-          <div class="feature-post__media" style="background-image: url('{{ featureImage }}');"></div>
+          <div class="feature-post__media">
+            <img src="{{ featureImage }}" alt="{{ featurePost.data.title }} featured image" loading="lazy">
+          </div>
         {% else %}
           <div class="feature-post__media feature-post__media--placeholder">Featured Story</div>
         {% endif %}
@@ -26,7 +28,7 @@ eleventyComputed:
           <p class="feature-post__meta">{{ featurePost.date | readableDate }}</p>
           <h2>{{ featurePost.data.title }}</h2>
           <p>{{ featureExcerpt }}</p>
-          <span class="feature-post__cta">Read more →</span>
+          <span class="feature-post__cta">Read more &rarr;</span>
         </div>
       </a>
     </article>
@@ -37,11 +39,13 @@ eleventyComputed:
       {% for post in pagedPosts %}
         {% if not loop.first %}
           {% set cardImage = post.data.image %}
-          {% set cardExcerpt = post.data.description or (post.templateContent | striptags | truncate(150, true, "…")) %}
+          {% set cardExcerpt = post.data.description or (post.templateContent | striptags | truncate(150, true, "...")) %}
           <article class="post-card">
             <a href="{{ post.url }}">
               {% if cardImage %}
-                <div class="post-card__media" style="background-image: url('{{ cardImage }}');"></div>
+                <div class="post-card__media">
+                  <img src="{{ cardImage }}" alt="{{ post.data.title }} teaser image" loading="lazy">
+                </div>
               {% else %}
                 <div class="post-card__media post-card__media--placeholder">TextMyLink</div>
               {% endif %}
@@ -50,7 +54,7 @@ eleventyComputed:
               <p class="post-card__meta">{{ post.date | readableDate }}</p>
               <h3><a href="{{ post.url }}">{{ post.data.title }}</a></h3>
               <p class="post-card__excerpt">{{ cardExcerpt }}</p>
-              <a class="post-card__link" href="{{ post.url }}">Read more →</a>
+              <a class="post-card__link" href="{{ post.url }}">Read more &rarr;</a>
             </div>
           </article>
         {% endif %}
@@ -65,14 +69,14 @@ eleventyComputed:
   {% if pagination.href.previous or pagination.href.next %}
     <nav class="pagination" aria-label="Blog pagination">
       {% if pagination.href.previous %}
-        <a class="pagination__link pagination__link--newer" href="{{ pagination.href.previous }}">← Newer</a>
+        <a class="pagination__link pagination__link--newer" href="{{ pagination.href.previous }}">&larr; Newer</a>
       {% else %}
-        <span class="pagination__link pagination__link--disabled">← Newer</span>
+        <span class="pagination__link pagination__link--disabled">&larr; Newer</span>
       {% endif %}
       {% if pagination.href.next %}
-        <a class="pagination__link pagination__link--older" href="{{ pagination.href.next }}">Older →</a>
+        <a class="pagination__link pagination__link--older" href="{{ pagination.href.next }}">Older &rarr;</a>
       {% else %}
-        <span class="pagination__link pagination__link--disabled">Older →</span>
+        <span class="pagination__link pagination__link--disabled">Older &rarr;</span>
       {% endif %}
     </nav>
   {% endif %}

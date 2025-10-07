@@ -47,16 +47,17 @@
 {% endblock %}
 
 {% block content %}
-  {% if image %}
+  {% set heroImage = image | default("") | trim %}
+  {% if heroImage %}
     <figure class="post-hero">
-      <img src="{{ image }}" alt="{{ postTitle }} featured image">
+      <img src="{{ heroImage }}" alt="{{ postTitle }} featured image">
     </figure>
   {% endif %}
   <header class="post-header">
     <p class="post-meta">
       <time datetime="{{ date | isoDate }}">{{ date | readableDate }}</time>
       {% if author %}
-        &nbsp;•&nbsp; {{ author }}
+        &nbsp;&middot;&nbsp; {{ author }}
       {% endif %}
     </p>
     <h1>{{ postTitle }}</h1>
@@ -76,7 +77,7 @@
     {% else %}
       <span class="neighbor-posts__placeholder">
         <span class="neighbor-posts__label">Previous Post</span>
-        <span class="neighbor-posts__title">You’re reading the newest story.</span>
+        <span class="neighbor-posts__title">You're reading the newest story.</span>
       </span>
     {% endif %}
     {% if nextPost %}

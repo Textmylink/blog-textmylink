@@ -64,21 +64,6 @@
         color: #5f40d1;
       }
 
-      .skip-link {
-        position: absolute;
-        top: -40px;
-        left: 0;
-        background: var(--color-accent);
-        color: #fff;
-        padding: 0.75rem 1rem;
-        border-radius: 0 0 8px 8px;
-        z-index: 1000;
-      }
-
-      .skip-link:focus {
-        top: 0;
-      }
-
       .container {
         width: min(92vw, var(--max-width));
         margin: 0 auto;
@@ -166,9 +151,16 @@
       .feature-post__media {
         position: relative;
         aspect-ratio: 16 / 9;
-        background-size: cover;
-        background-position: center;
+        border-radius: 18px 18px 0 0;
+        overflow: hidden;
         background-color: #dbd4f7;
+      }
+
+      .feature-post__media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
       }
 
       .feature-post__media--placeholder {
@@ -246,9 +238,19 @@
 
       .post-card__media {
         aspect-ratio: 4 / 3;
-        background-size: cover;
-        background-position: center;
         background-color: #e8e3fa;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .post-card__media img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
       }
 
       .post-card__media--placeholder {
@@ -499,7 +501,6 @@
 
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Skip to content</a>
     <header class="site-header">
       <div class="container site-header__inner">
         <a class="site-title" href="/">TextMyLink Blog</a>
@@ -517,6 +518,7 @@
     <main id="main-content" class="site-main container">
       
   
+  
     <figure class="post-hero">
       <img src="/uploads/hello-world.jpg" alt="Hello World featured image">
     </figure>
@@ -525,7 +527,7 @@
     <p class="post-meta">
       <time datetime="2025-10-07T00:00:00.000Z">October 6, 2025</time>
       
-        &nbsp;•&nbsp; Daniel Schulman
+        &nbsp;&middot;&nbsp; Daniel Schulman
       
     </p>
     <h1>Hello World</h1>
@@ -542,7 +544,7 @@
     
       <span class="neighbor-posts__placeholder">
         <span class="neighbor-posts__label">Previous Post</span>
-        <span class="neighbor-posts__title">You’re reading the newest story.</span>
+        <span class="neighbor-posts__title">You're reading the newest story.</span>
       </span>
     
     
