@@ -383,12 +383,18 @@
         box-shadow: var(--shadow-soft);
         margin-bottom: 2.5rem;
         background: #ebe5ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(0.5rem, 2vw, 1.25rem);
       }
 
       .post-hero img {
-        width: 100%;
-        height: auto;
         display: block;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: min(70vh, 680px);
       }
 
       .post-header {
@@ -398,12 +404,7 @@
 
       @media (min-width: 900px) {
         .post-hero {
-          max-height: 520px;
-        }
-
-        .post-hero img {
-          height: 100%;
-          object-fit: cover;
+          padding: clamp(0.75rem, 2.5vw, 1.75rem);
         }
       }
 
