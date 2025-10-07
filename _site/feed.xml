@@ -7,7 +7,23 @@
     <description>Insights, product updates, and resources from the TextMyLink team.</description>
     <language>en</language>
     
-    <lastBuildDate>Tue, 07 Oct 2025 15:45:00 PDT</lastBuildDate>
+    <lastBuildDate>Tue, 07 Oct 2025 16:17:00 PDT</lastBuildDate>
+    
+      <item>
+        <title>Test 4</title>
+        <link>https://blog.textmylink.com/posts/test-4/</link>
+        <guid isPermaLink="true">https://blog.textmylink.com/posts/test-4/</guid>
+        <pubDate>Tue, 07 Oct 2025 16:17:00 PDT</pubDate>
+        <description>more tiles 4</description>
+      </item>
+    
+      <item>
+        <title>Test 3</title>
+        <link>https://blog.textmylink.com/posts/test-3/</link>
+        <guid isPermaLink="true">https://blog.textmylink.com/posts/test-3/</guid>
+        <pubDate>Tue, 07 Oct 2025 16:15:00 PDT</pubDate>
+        <description>more tiles</description>
+      </item>
     
       <item>
         <title>test 2</title>

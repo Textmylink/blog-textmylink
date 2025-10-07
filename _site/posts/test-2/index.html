@@ -159,7 +159,8 @@
       .feature-post__media img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
+        object-position: center;
         display: block;
       }
 
@@ -536,15 +537,16 @@
     
   </header>
   <article class="post-body">
-    <p>test 2, checking tiles</p>
+    <h1>test 2, checking tiles</h1>
+<p>testtt</p>
 
   </article>
   <nav class="neighbor-posts" aria-label="Post pagination">
     
-      <span class="neighbor-posts__placeholder">
+      <a class="neighbor-posts__link neighbor-posts__link--prev" href="/posts/test-3/">
         <span class="neighbor-posts__label">Previous Post</span>
-        <span class="neighbor-posts__title">You're reading the newest story.</span>
-      </span>
+        <span class="neighbor-posts__title">Test 3</span>
+      </a>
     
     
       <a class="neighbor-posts__link neighbor-posts__link--next" href="/posts/test-1/">
