@@ -6,6 +6,39 @@
     <title>TextMyLink CMS</title>
   </head>
   <body>
+    <style>
+      @media (max-width: 900px) {
+        .nc-app-collection-panel {
+          position: static !important;
+          width: 100% !important;
+          max-width: none !important;
+        }
+
+        .nc-app-editor-with-preview {
+          margin-left: 0 !important;
+        }
+
+        .nc-app-main {
+          overflow-x: hidden;
+        }
+
+        .nc-media-library-modal {
+          width: 100% !important;
+          left: 0 !important;
+          right: 0 !important;
+        }
+
+        .nc-media-library-modal .nc-media-library-content {
+          max-width: 100% !important;
+        }
+
+        .nc-media-library-modal button,
+        .nc-media-library-modal input,
+        .nc-media-library-modal label {
+          font-size: 16px !important;
+        }
+      }
+    </style>
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
       if (window.netlifyIdentity) {
