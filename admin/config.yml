@@ -6,22 +6,32 @@ public_folder: "/uploads"
 site_url: "https://blog-textmylink.netlify.app"
 display_url: "https://blog-textmylink.netlify.app"
 publish_mode: simple
+
 collections:
-  - name: "blog"
-    label: "Blog Posts"
+  - name: "blog_drafts"
+    label: "Drafts"
     folder: "posts"
     create: true
     slug: "{{slug}}"
     preview_path: "posts/{{slug}}"
-    fields:
+    filter:
+      field: "draft"
+      value: true
+    fields: &blog_fields
       - label: "Keep as Draft?"
         name: "draft"
         widget: "boolean"
         required: false
         default: true
         hint: "Leave checked while you're still working. Uncheck to publish."
-      - { label: "Title", name: "title", widget: "string", required: false }
-      - { label: "Description", name: "description", widget: "text", required: false }
+      - label: "Title"
+        name: "title"
+        widget: "string"
+        required: false
+      - label: "Description"
+        name: "description"
+        widget: "text"
+        required: false
       - label: "SEO Title"
         name: "seo_title"
         widget: "string"
@@ -32,21 +42,48 @@ collections:
         widget: "text"
         required: false
         hint: "Optional summary for search/social snippets (up to ~155 characters)."
-      - { label: "Publish Date", name: "date", widget: "datetime", required: false }
+      - label: "Publish Date"
+        name: "date"
+        widget: "datetime"
+        required: false
       - label: "Tags"
         name: "tags"
         widget: "list"
-        default: ["blog"]
-      - { label: "Featured Image", name: "image", widget: "image", allow_multiple: false, required: false }
+        required: false
+        default:
+          - blog
+      - label: "Featured Image"
+        name: "image"
+        widget: "image"
+        allow_multiple: false
+        required: false
       - label: "Social Share Image"
         name: "seo_image"
         widget: "image"
         required: false
         allow_multiple: false
         hint: "Optional override for the Open Graph/Twitter share image."
-      - { label: "Author", name: "author", widget: "string", default: "Daniel Schulman" }
-      - { label: "Body", name: "body", widget: "markdown" }
+      - label: "Author"
+        name: "author"
+        widget: "string"
+        default: "Daniel Schulman"
+        required: false
+      - label: "Body"
+        name: "body"
+        widget: "markdown"
+        required: false
       - label: "Layout"
         name: "layout"
         widget: "hidden"
         default: "post.njk"
+
+  - name: "blog_published"
+    label: "Published Posts"
+    folder: "posts"
+    create: false
+    slug: "{{slug}}"
+    preview_path: "posts/{{slug}}"
+    filter:
+      field: "draft"
+      value: false
+    fields: *blog_fields
