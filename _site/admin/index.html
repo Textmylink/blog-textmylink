@@ -90,7 +90,8 @@
           topBar: null,
           newButton: null,
           newButtonParent: null,
-          newButtonNextSibling: null
+          newButtonNextSibling: null,
+          floatingContainer: null
         };
 
         let applyScheduled = false;
@@ -303,7 +304,7 @@
           button.id = "cms-mobile-collections-button";
           button.type = "button";
           button.setAttribute("aria-haspopup", "true");
-          button.innerHTML = '<span aria-hidden="true">☰</span> Collections';
+          button.innerHTML = '<span aria-hidden="true">â˜°</span> Collections';
           button.addEventListener("click", () => {
             const shouldOpen = !document.body.classList.contains("cms-collections-open");
             setCollectionsOpen(shouldOpen, state);
@@ -356,6 +357,22 @@
         return bar;
       }
 
+      function ensureFloatingButtonContainer(state) {
+        if (state.floatingContainer && document.body.contains(state.floatingContainer)) {
+          return state.floatingContainer;
+        }
+        let container = document.getElementById("cms-mobile-floating-button");
+        if (!container) {
+          container = document.createElement("div");
+          container.id = "cms-mobile-floating-button";
+          document.body.appendChild(container);
+        } else if (container.parentNode !== document.body) {
+          document.body.appendChild(container);
+        }
+        state.floatingContainer = container;
+        return container;
+      }
+
       function resetMobileTopBar(state) {
         if (state.button) {
           state.button.remove();
@@ -379,18 +396,22 @@
         const btn = state.newButton;
         if (!btn) return;
 
-        const container = findEntryListContainer(root);
-        if (!container) return;
-
-        const sortByElement = findSortByElement(container) || findSortByElement(root);
-        const insertionParent = sortByElement && sortByElement.parentElement ? sortByElement.parentElement : container;
+        const container = ensureFloatingButtonContainer(state);
+        applyMobileStyles(container, {
+          position: "fixed",
+          right: "1rem",
+          bottom: "calc(1.15rem + env(safe-area-inset-bottom, 0))",
+          zIndex: "1003",
+          display: "inline-flex",
+          pointerEvents: "none"
+        });
 
         btn.classList.add("cms-mobile-new-button");
         applyMobileStyles(btn, {
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "0.6rem 1rem",
+          padding: "0.65rem 1.15rem",
           borderRadius: "999px",
           border: "none",
           background: "#2563EB",
@@ -399,35 +420,35 @@
           fontSize: "0.95rem",
           boxShadow: "0 12px 26px rgba(37, 99, 235, 0.22)",
           textDecoration: "none",
-          width: "auto",
-          maxWidth: "100%",
-          margin: "0 0 1rem 0",
-          alignSelf: "flex-start"
+          pointerEvents: "auto"
         });
 
-        if (sortByElement && insertionParent) {
-          insertionParent.insertBefore(btn, sortByElement);
-        } else if (insertionParent) {
-          insertionParent.insertBefore(btn, insertionParent.firstChild || null);
+        if (btn.parentNode !== container) {
+          container.appendChild(btn);
         }
       }
 
       function resetMobileNewEntryButton(state) {
         const btn = state.newButton;
-        if (!btn) return;
+        if (btn) {
+          btn.classList.remove("cms-mobile-new-button");
+          resetMobileStyles(btn);
 
-        btn.classList.remove("cms-mobile-new-button");
-        resetMobileStyles(btn);
-
-        if (state.newButtonParent) {
-          if (
-            state.newButtonNextSibling &&
-            state.newButtonNextSibling.parentNode === state.newButtonParent
-          ) {
-            state.newButtonParent.insertBefore(btn, state.newButtonNextSibling);
-          } else {
-            state.newButtonParent.appendChild(btn);
+          if (state.newButtonParent) {
+            if (
+              state.newButtonNextSibling &&
+              state.newButtonNextSibling.parentNode === state.newButtonParent
+            ) {
+              state.newButtonParent.insertBefore(btn, state.newButtonNextSibling);
+            } else {
+              state.newButtonParent.appendChild(btn);
+            }
           }
+        }
+
+        if (state.floatingContainer) {
+          state.floatingContainer.remove();
+          state.floatingContainer = null;
         }
 
         state.newButton = null;
@@ -566,7 +587,8 @@
     <style>
       #cms-mobile-toolbar,
       #cms-mobile-collections-button,
-      #cms-mobile-collections-overlay {
+      #cms-mobile-collections-overlay,
+      #cms-mobile-floating-button {
         display: none;
       }
 
@@ -623,11 +645,21 @@
           background: #3730a3;
         }
 
+        #cms-mobile-floating-button {
+          position: fixed;
+          right: 1rem;
+          bottom: calc(1.15rem + env(safe-area-inset-bottom, 0));
+          z-index: 1003;
+          display: inline-flex;
+          pointer-events: none;
+        }
+
+        #cms-mobile-floating-button .cms-mobile-new-button,
         #nc-root .cms-mobile-new-button {
           display: inline-flex !important;
           align-items: center;
           justify-content: center;
-          padding: 0.6rem 1rem;
+          padding: 0.65rem 1.15rem;
           border-radius: 999px;
           border: none;
           background: #2563eb;
@@ -636,13 +668,18 @@
           font-size: 0.95rem;
           box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
           text-decoration: none;
-          margin: 0 0 1rem 0;
         }
 
+        #cms-mobile-floating-button .cms-mobile-new-button {
+          pointer-events: auto;
+        }
+
+        #cms-mobile-floating-button .cms-mobile-new-button:focus,
         #nc-root .cms-mobile-new-button:focus {
           outline: none;
         }
 
+        #cms-mobile-floating-button .cms-mobile-new-button:active,
         #nc-root .cms-mobile-new-button:active {
           transform: translateY(1px);
         }
@@ -720,23 +757,8 @@
           font-size: 16px !important;
         }
 
-        #nc-root [data-testid="collection-header"],
-        #nc-root [class*="CollectionHeader"] {
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: flex-start !important;
-          gap: 0.75rem !important;
-          width: 100%;
-        }
-
-        #nc-root [data-testid="collection-header"] > *,
-        #nc-root [class*="CollectionHeader"] > * {
-          width: 100%;
-        }
-
-        #nc-root [data-testid="collection-header"] .cms-mobile-new-button,
-        #nc-root [class*="CollectionHeader"] .cms-mobile-new-button {
-          align-self: flex-start !important;
+        #cms-mobile-floating-button {
+          pointer-events: none;
         }
       }
     </style>

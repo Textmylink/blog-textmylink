@@ -357,6 +357,22 @@
         return bar;
       }
 
+      function ensureFloatingButtonContainer(state) {
+        if (state.floatingContainer && document.body.contains(state.floatingContainer)) {
+          return state.floatingContainer;
+        }
+        let container = document.getElementById("cms-mobile-floating-button");
+        if (!container) {
+          container = document.createElement("div");
+          container.id = "cms-mobile-floating-button";
+          document.body.appendChild(container);
+        } else if (container.parentNode !== document.body) {
+          document.body.appendChild(container);
+        }
+        state.floatingContainer = container;
+        return container;
+      }
+
       function resetMobileTopBar(state) {
         if (state.button) {
           state.button.remove();
@@ -383,8 +399,8 @@
         const container = ensureFloatingButtonContainer(state);
         applyMobileStyles(container, {
           position: "fixed",
-          left: "1rem",
-          bottom: "calc(1rem + env(safe-area-inset-bottom, 0))",
+          right: "1rem",
+          bottom: "calc(1.15rem + env(safe-area-inset-bottom, 0))",
           zIndex: "1003",
           display: "inline-flex",
           pointerEvents: "none"
@@ -631,8 +647,8 @@
 
         #cms-mobile-floating-button {
           position: fixed;
-          left: 1rem;
-          bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+          right: 1rem;
+          bottom: calc(1.15rem + env(safe-area-inset-bottom, 0));
           z-index: 1003;
           display: inline-flex;
           pointer-events: none;
