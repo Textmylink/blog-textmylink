@@ -84,11 +84,13 @@
       (function initCms() {
         if (window.CMS && typeof window.CMS.init === "function") {
           window.CMS.init();
+          setupIdentityUI();
           setupMobileEnhancements();
           return;
         }
         if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
           window.NetlifyCmsApp.init();
+          setupIdentityUI();
           setupMobileEnhancements();
           return;
         }
@@ -96,6 +98,44 @@
         console.error(message);
         document.body.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
       })();
+
+      function setupIdentityUI() {
+        if (!window.netlifyIdentity) {
+          return;
+        }
+
+        const hideModalTabs = () => {
+          const modal = document.querySelector(".netlify-identity-modal");
+          if (!modal) return;
+
+          const tabs = modal.querySelector("[data-netlify-identity-menu]");
+          if (tabs) {
+            tabs.style.display = "none";
+          }
+
+          const links = modal.querySelectorAll("[data-netlify-identity-button]");
+          links.forEach((button) => {
+            const text = (button.textContent || "").toLowerCase();
+            if (text.includes("sign up") || text.includes("signup") || text.includes("register")) {
+              button.remove();
+            }
+          });
+
+          const heading = modal.querySelector(".netlify-identity-title");
+          if (heading) {
+            heading.textContent = "Log in";
+          }
+        };
+
+        window.netlifyIdentity.on("open", () => {
+          hideModalTabs();
+          const observer = new MutationObserver(() => hideModalTabs());
+          const modal = document.querySelector(".netlify-identity-modal");
+          if (modal) {
+            observer.observe(modal, { childList: true, subtree: true });
+          }
+        });
+      }
 
       function setupMobileEnhancements() {
         const applyTweaks = () => {
