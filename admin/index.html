@@ -6,63 +6,6 @@
     <title>TextMyLink CMS</title>
   </head>
   <body>
-    <style>
-      @media (max-width: 900px) {
-        #nc-root {
-          overflow-x: hidden;
-        }
-
-        #nc-root aside,
-        #nc-root [role="navigation"] {
-          position: static !important;
-          width: 100% !important;
-          max-width: none !important;
-          height: auto !important;
-          min-height: 0 !important;
-        }
-
-        #nc-root [data-testid="editor-pane"],
-        #nc-root main,
-        #nc-root [role="main"] {
-          margin-left: 0 !important;
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-
-        #nc-root [data-testid="app-container"],
-        #nc-root [data-testid="workspace"],
-        #nc-root [class*="Layout"],
-        #nc-root [class*="Container"] {
-          flex-direction: column !important;
-          align-items: stretch !important;
-        }
-
-        #nc-root [class*="Pane"],
-        #nc-root [class*="EditorPane"] {
-          max-width: 100% !important;
-        }
-
-        #nc-root [class*="MediaLibrary"],
-        #nc-root [role="dialog"] {
-          width: 100% !important;
-          max-width: 100% !important;
-          left: 0 !important;
-          right: 0 !important;
-          margin: 0 !important;
-        }
-
-        #nc-root [role="dialog"] .nc-media-library-content,
-        #nc-root [role="dialog"] [class*="MediaLibraryContent"] {
-          max-width: 100% !important;
-        }
-
-        #nc-root [role="dialog"] button,
-        #nc-root [role="dialog"] input,
-        #nc-root [role="dialog"] label {
-          font-size: 16px !important;
-        }
-      }
-    </style>
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
       if (window.netlifyIdentity) {
@@ -138,66 +81,87 @@
       }
 
       function setupMobileEnhancements() {
+        const MOBILE_QUERY = window.matchMedia("(max-width: 900px)");
+        const state = { button: null, overlay: null, nav: null };
+
         const applyTweaks = () => {
-          if (!window.matchMedia("(max-width: 900px)").matches) {
-            return;
-          }
           const root = document.getElementById("nc-root");
           if (!root) return;
 
+          const isMobile = MOBILE_QUERY.matches;
           const sidebar = findSidebar(root);
-          if (sidebar && !sidebar.dataset.mobileAdjusted) {
-            sidebar.dataset.mobileAdjusted = "true";
-            Object.assign(sidebar.style, {
-              position: "static",
-              width: "100%",
-              maxWidth: "none",
-              height: "auto",
-              minHeight: "0",
-              boxShadow: "none"
-            });
+
+          if (sidebar) {
+            if (isMobile) {
+              ensureMobileNav(sidebar, state);
+            } else {
+              resetMobileNav(sidebar, state);
+            }
+          } else {
+            resetMobileNav(null, state);
           }
 
           const layout = sidebar ? findFlexParent(sidebar) : null;
-          if (layout && !layout.dataset.mobileAdjusted) {
-            layout.dataset.mobileAdjusted = "true";
-            layout.style.flexDirection = "column";
-            layout.style.alignItems = "stretch";
-            layout.style.width = "100%";
+          if (layout) {
+            if (isMobile) {
+              applyMobileStyles(layout, {
+                flexDirection: "column",
+                alignItems: "stretch",
+                width: "100%"
+              });
+            } else {
+              resetMobileStyles(layout);
+            }
           }
 
           const mainPane =
             root.querySelector('[data-testid="editor-pane"]') ||
             root.querySelector("[role='main']") ||
             root.querySelector("main");
-          if (mainPane && !mainPane.dataset.mobileAdjusted) {
-            mainPane.dataset.mobileAdjusted = "true";
-            Object.assign(mainPane.style, {
-              marginLeft: "0",
-              width: "100%",
-              maxWidth: "100%"
-            });
+          if (mainPane) {
+            if (isMobile) {
+              applyMobileStyles(mainPane, {
+                marginLeft: "0",
+                width: "100%",
+                maxWidth: "100%"
+              });
+            } else {
+              resetMobileStyles(mainPane);
+            }
           }
 
           const modal = findMediaModal();
-          if (modal && !modal.dataset.mobileAdjusted) {
-            modal.dataset.mobileAdjusted = "true";
-            Object.assign(modal.style, {
-              width: "100%",
-              maxWidth: "100%",
-              left: "0",
-              right: "0",
-              margin: "0",
-              height: "100%",
-              maxHeight: "100%"
-            });
+          if (modal) {
+            if (isMobile) {
+              applyMobileStyles(modal, {
+                width: "100%",
+                maxWidth: "100%",
+                left: "0",
+                right: "0",
+                margin: "0",
+                height: "100%",
+                maxHeight: "100%"
+              });
 
-            const modalContent =
-              modal.querySelector(".nc-media-library-content") ||
-              modal.querySelector("[class*='MediaLibraryContent']");
-            if (modalContent) {
-              modalContent.style.maxWidth = "100%";
+              const modalContent =
+                modal.querySelector(".nc-media-library-content") ||
+                modal.querySelector("[class*='MediaLibraryContent']");
+              if (modalContent) {
+                applyMobileStyles(modalContent, { maxWidth: "100%" });
+              }
+            } else {
+              resetMobileStyles(modal);
+              const modalContent =
+                modal.querySelector(".nc-media-library-content") ||
+                modal.querySelector("[class*='MediaLibraryContent']");
+              if (modalContent) {
+                resetMobileStyles(modalContent);
+              }
             }
+          }
+
+          if (!isMobile) {
+            setCollectionsOpen(false, state);
           }
         };
 
@@ -213,7 +177,151 @@
         };
 
         observeRoot();
+        if (typeof MOBILE_QUERY.addEventListener === "function") {
+          MOBILE_QUERY.addEventListener("change", applyTweaks);
+        } else if (typeof MOBILE_QUERY.addListener === "function") {
+          MOBILE_QUERY.addListener(applyTweaks);
+        }
         window.addEventListener("resize", applyTweaks, { passive: true });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setCollectionsOpen(false, state);
+          }
+        });
+      }
+
+      function applyMobileStyles(element, styles) {
+        if (!element) return;
+        if (element.dataset.mobileOriginalStyle === undefined) {
+          element.dataset.mobileOriginalStyle = element.getAttribute("style") || "";
+        }
+        Object.assign(element.style, styles);
+      }
+
+      function resetMobileStyles(element) {
+        if (!element || element.dataset.mobileOriginalStyle === undefined) {
+          return;
+        }
+        const original = element.dataset.mobileOriginalStyle;
+        if (original) {
+          element.setAttribute("style", original);
+        } else {
+          element.removeAttribute("style");
+        }
+        delete element.dataset.mobileOriginalStyle;
+      }
+
+      function ensureMobileNav(nav, state) {
+        if (!nav) return;
+        if (nav.dataset.mobileOriginalStyleNav === undefined) {
+          nav.dataset.mobileOriginalStyleNav = nav.getAttribute("style") || "";
+        }
+        if (!nav.id) {
+          nav.id = "cms-mobile-collections-panel";
+        }
+        nav.dataset.mobileCollectionsPanel = "true";
+        state.nav = nav;
+        nav.setAttribute("tabindex", "-1");
+
+        const button = ensureMobileNavButton(state, nav.id);
+        const overlay = ensureMobileNavOverlay(state);
+        state.button = button;
+        state.overlay = overlay;
+
+        nav.setAttribute(
+          "aria-hidden",
+          document.body.classList.contains("cms-collections-open") ? "false" : "true"
+        );
+
+        if (!nav.dataset.mobileNavBound) {
+          nav.dataset.mobileNavBound = "true";
+          nav.addEventListener("click", (event) => {
+            if (event.target.closest("a, button")) {
+              setCollectionsOpen(false, state);
+            }
+          });
+        }
+      }
+
+      function resetMobileNav(nav, state) {
+        const panel = nav || state.nav;
+        if (panel) {
+          delete panel.dataset.mobileCollectionsPanel;
+          panel.removeAttribute("aria-hidden");
+          panel.removeAttribute("tabindex");
+          if (panel.dataset.mobileNavBound) {
+            delete panel.dataset.mobileNavBound;
+          }
+          if (panel.dataset.mobileOriginalStyleNav !== undefined) {
+            const original = panel.dataset.mobileOriginalStyleNav;
+            if (original) {
+              panel.setAttribute("style", original);
+            } else {
+              panel.removeAttribute("style");
+            }
+            delete panel.dataset.mobileOriginalStyleNav;
+          }
+        }
+        setCollectionsOpen(false, state);
+      }
+
+      function ensureMobileNavButton(state, controlsId) {
+        let button = document.getElementById("cms-mobile-collections-button");
+        if (!button) {
+          button = document.createElement("button");
+          button.id = "cms-mobile-collections-button";
+          button.type = "button";
+          button.setAttribute("aria-haspopup", "true");
+          button.innerHTML = '<span aria-hidden="true">☰</span> Collections';
+          document.body.appendChild(button);
+          button.addEventListener("click", () => {
+            const shouldOpen = !document.body.classList.contains("cms-collections-open");
+            setCollectionsOpen(shouldOpen, state);
+          });
+        }
+        if (controlsId) {
+          button.setAttribute("aria-controls", controlsId);
+        }
+        button.setAttribute(
+          "aria-expanded",
+          document.body.classList.contains("cms-collections-open") ? "true" : "false"
+        );
+        return button;
+      }
+
+      function ensureMobileNavOverlay(state) {
+        let overlay = document.getElementById("cms-mobile-collections-overlay");
+        if (!overlay) {
+          overlay = document.createElement("div");
+          overlay.id = "cms-mobile-collections-overlay";
+          overlay.style.display = "none";
+          document.body.appendChild(overlay);
+        }
+        if (!overlay.dataset.mobileBound) {
+          overlay.dataset.mobileBound = "true";
+          overlay.addEventListener("click", () => setCollectionsOpen(false, state));
+        }
+        overlay.style.display = document.body.classList.contains("cms-collections-open") ? "block" : "none";
+        return overlay;
+      }
+
+      function setCollectionsOpen(open, state) {
+        const body = document.body;
+        if (open) {
+          body.classList.add("cms-collections-open");
+        } else {
+          body.classList.remove("cms-collections-open");
+        }
+        if (state.button) {
+          state.button.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+        if (state.nav) {
+          state.nav.setAttribute("aria-hidden", open ? "false" : "true");
+          state.nav.setAttribute("tabindex", open ? "0" : "-1");
+        }
+        if (state.overlay) {
+          state.overlay.style.display = open ? "block" : "none";
+        }
       }
 
       function findSidebar(root) {
@@ -252,3 +360,120 @@
     </script>
   </body>
 </html>
+    <style>
+      #cms-mobile-collections-button,
+      #cms-mobile-collections-overlay {
+        display: none;
+      }
+
+      @media (max-width: 900px) {
+        body.cms-collections-open {
+          overflow: hidden;
+        }
+
+        #nc-root {
+          overflow-x: hidden;
+        }
+
+        #cms-mobile-collections-button {
+          position: fixed;
+          top: 0.75rem;
+          right: 0.75rem;
+          z-index: 1003;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.55rem 0.95rem;
+          border-radius: 999px;
+          border: none;
+          background: #1f2937;
+          color: #fff;
+          font-size: 0.95rem;
+          font-weight: 600;
+          box-shadow: 0 16px 38px rgba(15, 23, 42, 0.24);
+          cursor: pointer;
+        }
+
+        #cms-mobile-collections-button span[aria-hidden="true"] {
+          font-size: 1.15rem;
+          line-height: 1;
+        }
+
+        body.cms-collections-open #cms-mobile-collections-button {
+          background: #3730a3;
+        }
+
+        #cms-mobile-collections-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.35);
+          z-index: 1001;
+        }
+
+        body.cms-collections-open #cms-mobile-collections-overlay {
+          display: block;
+        }
+
+        #nc-root [data-mobile-collections-panel] {
+          position: fixed !important;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          width: min(82vw, 320px);
+          max-width: 92vw;
+          background: #ffffff;
+          z-index: 1002;
+          transform: translateX(-110%);
+          transition: transform 0.25s ease;
+          box-shadow: 12px 0 32px rgba(15, 23, 42, 0.28);
+          padding: 1.25rem 1rem;
+          overflow-y: auto;
+        }
+
+        body.cms-collections-open #nc-root [data-mobile-collections-panel] {
+          transform: translateX(0);
+        }
+
+        #nc-root [data-testid="editor-pane"],
+        #nc-root main,
+        #nc-root [role="main"] {
+          margin-left: 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        #nc-root [data-testid="app-container"],
+        #nc-root [data-testid="workspace"],
+        #nc-root [class*="Layout"],
+        #nc-root [class*="Container"] {
+          flex-direction: column !important;
+          align-items: stretch !important;
+          width: 100% !important;
+        }
+
+        #nc-root [class*="Pane"],
+        #nc-root [class*="EditorPane"] {
+          max-width: 100% !important;
+        }
+
+        #nc-root [class*="MediaLibrary"],
+        #nc-root [role="dialog"] {
+          width: 100% !important;
+          max-width: 100% !important;
+          left: 0 !important;
+          right: 0 !important;
+          margin: 0 !important;
+        }
+
+        #nc-root [role="dialog"] .nc-media-library-content,
+        #nc-root [role="dialog"] [class*="MediaLibraryContent"] {
+          max-width: 100% !important;
+        }
+
+        #nc-root [role="dialog"] button,
+        #nc-root [role="dialog"] input,
+        #nc-root [role="dialog"] label {
+          font-size: 16px !important;
+        }
+      }
+    </style>
