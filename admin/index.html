@@ -622,6 +622,57 @@
           transform: translateX(0);
         }
 
+        #nc-root header[role="banner"],
+        #nc-root header[role="toolbar"],
+        #nc-root [class*="EditorHeader"],
+        #nc-root [class*="CollectionHeader"] {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 0.75rem !important;
+          width: 100% !important;
+        }
+
+        #nc-root header[role="banner"] > *,
+        #nc-root header[role="toolbar"] > *,
+        #nc-root [class*="EditorHeader"] > *,
+        #nc-root [class*="CollectionHeader"] > * {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        #nc-root nav[role="navigation"],
+        #nc-root [class*="EditorToolbar"],
+        #nc-root [class*="HeaderToolbar"],
+        #nc-root [class*="CollectionControls"] {
+          display: flex !important;
+          flex-wrap: wrap !important;
+          justify-content: flex-start !important;
+          gap: 0.6rem !important;
+        }
+
+        #nc-root nav[role="navigation"] a,
+        #nc-root nav[role="navigation"] button,
+        #nc-root [class*="EditorToolbar"] > *,
+        #nc-root [class*="HeaderToolbar"] > * {
+          flex: 1 1 140px !important;
+          min-width: 0 !important;
+        }
+
+        #nc-root .nc-editor-status,
+        #nc-root [class*="EditorStatus"] {
+          order: -1;
+        }
+
+        #nc-root [class*="ControlPane"] label {
+          font-size: 0.85rem !important;
+        }
+
+        #nc-root [class*="ControlPane"] textarea,
+        #nc-root [class*="ControlPane"] input {
+          min-height: 42px;
+        }
+
         #nc-root [data-testid="editor-pane"],
         #nc-root main,
         #nc-root [role="main"] {
