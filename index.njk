@@ -2,17 +2,11 @@
 layout: layouts/base.njk
 title: "Latest from the TextMyLink Blog"
 description: "News, updates, and best practices from the TextMyLink team."
-pagination:
-  data: collections.posts
-  size: 5
-  alias: pagedPosts
-permalink: false
-eleventyComputed:
-  permalink: "{{ '/' if pagination.pageNumber == 0 else '/page/' ~ (pagination.pageNumber + 1) ~ '/' }}"
 ---
 {% block content %}
-  {% if pagedPosts and pagedPosts | length %}
-    {% set featurePost = pagedPosts[0] %}
+  {% set allPosts = collections.posts or [] %}
+  {% if allPosts | length %}
+    {% set featurePost = allPosts[0] %}
     {% set featureImage = featurePost.data.image | default("") | trim %}
     {% set featureExcerpt = featurePost.data.description or (featurePost.templateContent | striptags | truncate(260, true, "...")) %}
     <article class="feature-post">
@@ -34,10 +28,10 @@ eleventyComputed:
     </article>
   {% endif %}
 
-  {% if pagedPosts | length > 1 %}
+  {% if allPosts | length > 1 %}
     <section class="post-grid">
-      {% for post in pagedPosts %}
-        {% if not loop.first %}
+      {% for post in allPosts %}
+        {% if not loop.first and loop.index0 < 5 %}
           {% set cardImage = post.data.image | default("") | trim %}
           {% set cardExcerpt = post.data.description or (post.templateContent | striptags | truncate(150, true, "...")) %}
           <article class="post-card">
@@ -61,23 +55,6 @@ eleventyComputed:
       {% endfor %}
     </section>
   {% else %}
-    {% if not pagedPosts or not pagedPosts | length %}
-      <p>No posts yet. Check back soon!</p>
-    {% endif %}
-  {% endif %}
-
-  {% if pagination.href.previous or pagination.href.next %}
-    <nav class="pagination" aria-label="Blog pagination">
-      {% if pagination.href.previous %}
-        <a class="pagination__link pagination__link--newer" href="{{ pagination.href.previous }}">&larr; Newer</a>
-      {% else %}
-        <span class="pagination__link pagination__link--disabled">&larr; Newer</span>
-      {% endif %}
-      {% if pagination.href.next %}
-        <a class="pagination__link pagination__link--older" href="{{ pagination.href.next }}">Older &rarr;</a>
-      {% else %}
-        <span class="pagination__link pagination__link--disabled">Older &rarr;</span>
-      {% endif %}
-    </nav>
+    <p>No posts yet. Check back soon!</p>
   {% endif %}
 {% endblock %}
