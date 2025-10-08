@@ -82,7 +82,13 @@
 
       function setupMobileEnhancements() {
         const MOBILE_QUERY = window.matchMedia("(max-width: 900px)");
-        const state = { button: null, overlay: null, nav: null };
+        const state = {
+          button: null,
+          overlay: null,
+          nav: null,
+          navParent: null,
+          navNextSibling: null
+        };
 
         const applyTweaks = () => {
           const root = document.getElementById("nc-root");
@@ -221,6 +227,13 @@
         }
         nav.dataset.mobileCollectionsPanel = "true";
         state.nav = nav;
+        if (!state.navParent) {
+          state.navParent = nav.parentNode;
+          state.navNextSibling = nav.nextSibling;
+        }
+        if (nav.parentNode !== document.body) {
+          document.body.appendChild(nav);
+        }
         nav.setAttribute("tabindex", "-1");
 
         const button = ensureMobileNavButton(state, nav.id);
@@ -249,6 +262,13 @@
           delete panel.dataset.mobileCollectionsPanel;
           panel.removeAttribute("aria-hidden");
           panel.removeAttribute("tabindex");
+          if (state.navParent && panel.parentNode !== state.navParent) {
+            if (state.navNextSibling && state.navNextSibling.parentNode === state.navParent) {
+              state.navParent.insertBefore(panel, state.navNextSibling);
+            } else {
+              state.navParent.appendChild(panel);
+            }
+          }
           if (panel.dataset.mobileNavBound) {
             delete panel.dataset.mobileNavBound;
           }
