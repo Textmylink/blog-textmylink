@@ -303,7 +303,7 @@
           button.id = "cms-mobile-collections-button";
           button.type = "button";
           button.setAttribute("aria-haspopup", "true");
-          button.innerHTML = '<span aria-hidden="true">☰</span> Collections';
+          button.innerHTML = '<span aria-hidden="true">â˜°</span> Collections';
           button.addEventListener("click", () => {
             const shouldOpen = !document.body.classList.contains("cms-collections-open");
             setCollectionsOpen(shouldOpen, state);
@@ -718,6 +718,25 @@
         #nc-root [role="dialog"] input,
         #nc-root [role="dialog"] label {
           font-size: 16px !important;
+        }
+
+        #nc-root [data-testid="collection-header"],
+        #nc-root [class*="CollectionHeader"] {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 0.75rem !important;
+          width: 100%;
+        }
+
+        #nc-root [data-testid="collection-header"] > *,
+        #nc-root [class*="CollectionHeader"] > * {
+          width: 100%;
+        }
+
+        #nc-root [data-testid="collection-header"] .cms-mobile-new-button,
+        #nc-root [class*="CollectionHeader"] .cms-mobile-new-button {
+          align-self: flex-start !important;
         }
       }
     </style>
