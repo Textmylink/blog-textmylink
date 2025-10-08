@@ -368,9 +368,6 @@
       }
 
       function ensureMobileNewEntryButton(root, state) {
-        const topBar = ensureMobileTopBar(state);
-        if (!topBar) return;
-
         if (!state.newButton || !document.body.contains(state.newButton)) {
           const candidate = findNewEntryButton(root);
           if (!candidate) return;
@@ -382,19 +379,36 @@
         const btn = state.newButton;
         if (!btn) return;
 
+        const container = findEntryListContainer(root);
+        if (!container) return;
+
+        const sortByElement = findSortByElement(container) || findSortByElement(root);
+        const insertionParent = sortByElement && sortByElement.parentElement ? sortByElement.parentElement : container;
+
         btn.classList.add("cms-mobile-new-button");
         applyMobileStyles(btn, {
-          position: "static",
-          flex: "1 1 auto",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          width: "100%",
-          maxWidth: "100%"
+          padding: "0.6rem 1rem",
+          borderRadius: "999px",
+          border: "none",
+          background: "#2563EB",
+          color: "#fff",
+          fontWeight: "600",
+          fontSize: "0.95rem",
+          boxShadow: "0 12px 26px rgba(37, 99, 235, 0.22)",
+          textDecoration: "none",
+          width: "auto",
+          maxWidth: "100%",
+          margin: "0 0 1rem 0",
+          alignSelf: "flex-start"
         });
 
-        if (btn.parentNode !== topBar) {
-          topBar.insertBefore(btn, topBar.firstChild);
+        if (sortByElement && insertionParent) {
+          insertionParent.insertBefore(btn, sortByElement);
+        } else if (insertionParent) {
+          insertionParent.insertBefore(btn, insertionParent.firstChild || null);
         }
       }
 
@@ -443,6 +457,56 @@
         return null;
       }
 
+      function findEntryListContainer(root) {
+        const selectors = [
+          "[data-testid='collection-content']",
+          "[data-testid='collection-view']",
+          "[data-testid='collection']",
+          "[class*='CollectionContent']",
+          "[class*='CollectionMain']",
+          "[class*='Entries']"
+        ];
+
+        for (const selector of selectors) {
+          const el = root.querySelector(selector);
+          if (el) return el;
+        }
+
+        const main =
+          root.querySelector('[data-testid="editor-pane"]') ||
+          root.querySelector("[role='main']") ||
+          root.querySelector("main");
+        return main;
+      }
+
+      function findSortByElement(root) {
+        const selectors = [
+          "[data-testid='collection-sort']",
+          "[class*='CollectionSort']",
+          "[class*='Sort'] label",
+          "[class*='Sort'] span"
+        ];
+
+        for (const selector of selectors) {
+          const nodes = root.querySelectorAll(selector);
+          for (const node of nodes) {
+            const text = (node.textContent || "").trim().toLowerCase();
+            if (text.startsWith("sort by")) {
+              return node;
+            }
+          }
+        }
+
+        const candidates = root.querySelectorAll("label, span, div, p, strong");
+        for (const node of candidates) {
+          const text = (node.textContent || "").trim().toLowerCase();
+          if (text.startsWith("sort by")) {
+            return node;
+          }
+        }
+        return null;
+      }
+
       function setCollectionsOpen(open, state) {
         const body = document.body;
         if (open) {
@@ -450,17 +514,18 @@
         } else {
           body.classList.remove("cms-collections-open");
         }
-      if (state.button) {
-        state.button.setAttribute("aria-expanded", open ? "true" : "false");
+
+        if (state.button) {
+          state.button.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+        if (state.panel) {
+          state.panel.setAttribute("aria-hidden", open ? "false" : "true");
+          state.panel.setAttribute("tabindex", open ? "0" : "-1");
+        }
+        if (state.overlay) {
+          state.overlay.style.display = open ? "block" : "none";
+        }
       }
-      if (state.panel) {
-        state.panel.setAttribute("aria-hidden", open ? "false" : "true");
-        state.panel.setAttribute("tabindex", open ? "0" : "-1");
-      }
-      if (state.overlay) {
-        state.overlay.style.display = open ? "block" : "none";
-      }
-    }
 
       function findSidebar(root) {
         const navCandidates = root.querySelectorAll("[role='navigation'], aside");
@@ -522,6 +587,7 @@
           right: 0;
           z-index: 1003;
           display: flex;
+          justify-content: flex-end;
           gap: 0.75rem;
           align-items: center;
           padding: 0.65rem 0.75rem;
@@ -557,8 +623,7 @@
           background: #3730a3;
         }
 
-        #cms-mobile-toolbar .cms-mobile-new-button {
-          flex: 1 1 auto;
+        #nc-root .cms-mobile-new-button {
           display: inline-flex !important;
           align-items: center;
           justify-content: center;
@@ -571,13 +636,14 @@
           font-size: 0.95rem;
           box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
           text-decoration: none;
+          margin: 0 0 1rem 0;
         }
 
-        #cms-mobile-toolbar .cms-mobile-new-button:focus {
+        #nc-root .cms-mobile-new-button:focus {
           outline: none;
         }
 
-        #cms-mobile-toolbar .cms-mobile-new-button:active {
+        #nc-root .cms-mobile-new-button:active {
           transform: translateY(1px);
         }
 
