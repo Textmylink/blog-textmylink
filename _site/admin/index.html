@@ -86,8 +86,7 @@
           button: null,
           overlay: null,
           nav: null,
-          navParent: null,
-          navNextSibling: null
+          panel: null
         };
 
         let applyScheduled = false;
@@ -232,68 +231,49 @@
 
       function ensureMobileNav(nav, state) {
         if (!nav) return;
-        if (nav.dataset.mobileOriginalStyleNav === undefined) {
-          nav.dataset.mobileOriginalStyleNav = nav.getAttribute("style") || "";
-        }
-        if (!nav.id) {
-          nav.id = "cms-mobile-collections-panel";
-        }
-        nav.dataset.mobileCollectionsPanel = "true";
         state.nav = nav;
-        if (!state.navParent) {
-          state.navParent = nav.parentNode;
-          state.navNextSibling = nav.nextSibling;
-        }
-        if (nav.parentNode !== document.body) {
-          document.body.appendChild(nav);
-        }
-        nav.setAttribute("tabindex", "-1");
+        applyMobileStyles(nav, { display: "none" });
 
-        const button = ensureMobileNavButton(state, nav.id);
-        const overlay = ensureMobileNavOverlay(state);
-        state.button = button;
-        state.overlay = overlay;
-
-        nav.setAttribute(
-          "aria-hidden",
-          document.body.classList.contains("cms-collections-open") ? "false" : "true"
-        );
-
-        if (!nav.dataset.mobileNavBound) {
-          nav.dataset.mobileNavBound = "true";
-          nav.addEventListener("click", (event) => {
+        if (!state.panel) {
+          const panelTag = nav.tagName.toLowerCase() === "nav" ? "nav" : "div";
+          const panel = document.createElement(panelTag);
+          panel.id = "cms-mobile-collections-panel";
+          panel.dataset.mobileCollectionsPanel = "true";
+          panel.setAttribute("role", "navigation");
+          panel.setAttribute("aria-label", "Collections");
+          panel.setAttribute("tabindex", "-1");
+          panel.setAttribute("aria-hidden", "true");
+          document.body.appendChild(panel);
+          panel.addEventListener("click", (event) => {
             if (event.target.closest("a, button")) {
               setCollectionsOpen(false, state);
             }
           });
+          state.panel = panel;
         }
+
+        if (state.panel) {
+          state.panel.innerHTML = nav.innerHTML;
+          state.panel.setAttribute(
+            "aria-hidden",
+            document.body.classList.contains("cms-collections-open") ? "false" : "true"
+          );
+        }
+
+        const button = ensureMobileNavButton(state, state.panel ? state.panel.id : null);
+        const overlay = ensureMobileNavOverlay(state);
+        state.button = button;
+        state.overlay = overlay;
       }
 
       function resetMobileNav(nav, state) {
-        const panel = nav || state.nav;
-        if (panel) {
-          delete panel.dataset.mobileCollectionsPanel;
-          panel.removeAttribute("aria-hidden");
-          panel.removeAttribute("tabindex");
-          if (state.navParent && panel.parentNode !== state.navParent) {
-            if (state.navNextSibling && state.navNextSibling.parentNode === state.navParent) {
-              state.navParent.insertBefore(panel, state.navNextSibling);
-            } else {
-              state.navParent.appendChild(panel);
-            }
-          }
-          if (panel.dataset.mobileNavBound) {
-            delete panel.dataset.mobileNavBound;
-          }
-          if (panel.dataset.mobileOriginalStyleNav !== undefined) {
-            const original = panel.dataset.mobileOriginalStyleNav;
-            if (original) {
-              panel.setAttribute("style", original);
-            } else {
-              panel.removeAttribute("style");
-            }
-            delete panel.dataset.mobileOriginalStyleNav;
-          }
+        const originalNav = nav || state.nav;
+        if (originalNav) {
+          resetMobileStyles(originalNav);
+        }
+        if (state.panel) {
+          state.panel.remove();
+          state.panel = null;
         }
         setCollectionsOpen(false, state);
       }
@@ -314,6 +294,8 @@
         }
         if (controlsId) {
           button.setAttribute("aria-controls", controlsId);
+        } else {
+          button.removeAttribute("aria-controls");
         }
         button.setAttribute(
           "aria-expanded",
@@ -345,17 +327,17 @@
         } else {
           body.classList.remove("cms-collections-open");
         }
-        if (state.button) {
-          state.button.setAttribute("aria-expanded", open ? "true" : "false");
-        }
-        if (state.nav) {
-          state.nav.setAttribute("aria-hidden", open ? "false" : "true");
-          state.nav.setAttribute("tabindex", open ? "0" : "-1");
-        }
-        if (state.overlay) {
-          state.overlay.style.display = open ? "block" : "none";
-        }
+      if (state.button) {
+        state.button.setAttribute("aria-expanded", open ? "true" : "false");
       }
+      if (state.panel) {
+        state.panel.setAttribute("aria-hidden", open ? "false" : "true");
+        state.panel.setAttribute("tabindex", open ? "0" : "-1");
+      }
+      if (state.overlay) {
+        state.overlay.style.display = open ? "block" : "none";
+      }
+    }
 
       function findSidebar(root) {
         const navCandidates = root.querySelectorAll("[role='navigation'], aside");
@@ -447,7 +429,7 @@
           display: block;
         }
 
-        #nc-root [data-mobile-collections-panel] {
+        [data-mobile-collections-panel] {
           position: fixed !important;
           top: 0;
           left: 0;
@@ -463,7 +445,7 @@
           overflow-y: auto;
         }
 
-        body.cms-collections-open #nc-root [data-mobile-collections-panel] {
+        body.cms-collections-open [data-mobile-collections-panel] {
           transform: translateX(0);
         }
 
