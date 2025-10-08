@@ -7,7 +7,15 @@
     <description>Insights, product updates, and resources from the TextMyLink team.</description>
     <language>en</language>
     
-    <lastBuildDate>Wed, 08 Oct 2025 14:24:41 PDT</lastBuildDate>
+    <lastBuildDate>Wed, 08 Oct 2025 14:41:00 PDT</lastBuildDate>
+    
+      <item>
+        <title>The First Text That Started It All</title>
+        <link>https://blog.textmylink.com/posts/the-first-text-that-started-it-all/</link>
+        <guid isPermaLink="true">https://blog.textmylink.com/posts/the-first-text-that-started-it-all/</guid>
+        <pubDate>Wed, 08 Oct 2025 14:41:00 PDT</pubDate>
+        <description>Before TextMyLink was an app, it was just a text from a friend asking for my address.</description>
+      </item>
     
   </channel>
 </rss>
