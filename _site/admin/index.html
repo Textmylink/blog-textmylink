@@ -88,10 +88,7 @@
           nav: null,
           panel: null,
           topBar: null,
-          newButton: null,
-          newButtonParent: null,
-          newButtonNextSibling: null,
-          floatingContainer: null
+          fab: null
         };
 
         let applyScheduled = false;
@@ -106,9 +103,9 @@
 
           if (isMobile) {
             ensureMobileTopBar(state);
-            ensureMobileNewEntryButton(root, state);
+            ensureMobileCreateFab(root, state);
           } else {
-            resetMobileNewEntryButton(state);
+            removeMobileCreateFab(state);
             resetMobileTopBar(state);
           }
 
@@ -357,22 +354,6 @@
         return bar;
       }
 
-      function ensureFloatingButtonContainer(state) {
-        if (state.floatingContainer && document.body.contains(state.floatingContainer)) {
-          return state.floatingContainer;
-        }
-        let container = document.getElementById("cms-mobile-floating-button");
-        if (!container) {
-          container = document.createElement("div");
-          container.id = "cms-mobile-floating-button";
-          document.body.appendChild(container);
-        } else if (container.parentNode !== document.body) {
-          document.body.appendChild(container);
-        }
-        state.floatingContainer = container;
-        return container;
-      }
-
       function resetMobileTopBar(state) {
         if (state.button) {
           state.button.remove();
@@ -384,84 +365,44 @@
         }
       }
 
-      function ensureMobileNewEntryButton(root, state) {
-        if (!state.newButton || !document.body.contains(state.newButton)) {
-          const candidate = findNewEntryButton(root);
-          if (!candidate) return;
-          state.newButton = candidate;
-          state.newButtonParent = candidate.parentNode;
-          state.newButtonNextSibling = candidate.nextSibling;
+      function ensureMobileCreateFab(root, state) {
+        const trigger = findNewEntryButton(root);
+        if (!trigger) {
+          removeMobileCreateFab(state);
+          return;
         }
 
-        const btn = state.newButton;
-        if (!btn) return;
-
-        const container = ensureFloatingButtonContainer(state);
-        applyMobileStyles(container, {
-          position: "fixed",
-          right: "1rem",
-          bottom: "calc(1.15rem + env(safe-area-inset-bottom, 0))",
-          zIndex: "1003",
-          display: "none",
-          pointerEvents: "none"
-        });
-
-        btn.classList.add("cms-mobile-new-button");
-        applyMobileStyles(btn, {
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "0.65rem 1.15rem",
-          borderRadius: "999px",
-          border: "none",
-          background: "#2563EB",
-          color: "#fff",
-          fontWeight: "600",
-          fontSize: "0.95rem",
-          boxShadow: "0 12px 26px rgba(37, 99, 235, 0.22)",
-          textDecoration: "none",
-          pointerEvents: "auto"
-        });
-
-        if (!btn.dataset.mobileFabBound) {
-          btn.dataset.mobileFabBound = "true";
-          btn.addEventListener("focus", () => container.classList.add("visible"));
-          btn.addEventListener("blur", () => container.classList.remove("visible"));
+        if (!state.fab || !document.body.contains(state.fab)) {
+          const fab = document.createElement("button");
+          fab.id = "cms-mobile-create-post";
+          fab.type = "button";
+          fab.className = "cms-mobile-create-post";
+                    fab.innerHTML = '<span aria-hidden="true">+</span><span> New Blog Post</span>';
+          fab.addEventListener("click", (event) => {
+            event.preventDefault();
+            const latestTrigger =
+              findNewEntryButton(document.getElementById("nc-root") || document) ||
+              findNewEntryButton(document);
+            if (latestTrigger) {
+              latestTrigger.click();
+            } else {
+              console.warn("Unable to locate the native \"New Post\" button.");
+            }
+          });
+          document.body.appendChild(fab);
+          state.fab = fab;
         }
 
-        if (btn.parentNode !== container) {
-          container.appendChild(btn);
+        if (state.fab) {
+          state.fab.classList.add("visible");
         }
-
-        requestAnimationFrame(() => container.classList.add("visible"));
       }
 
-      function resetMobileNewEntryButton(state) {
-        const btn = state.newButton;
-        if (btn) {
-          btn.classList.remove("cms-mobile-new-button");
-          resetMobileStyles(btn);
-
-          if (state.newButtonParent) {
-            if (
-              state.newButtonNextSibling &&
-              state.newButtonNextSibling.parentNode === state.newButtonParent
-            ) {
-              state.newButtonParent.insertBefore(btn, state.newButtonNextSibling);
-            } else {
-              state.newButtonParent.appendChild(btn);
-            }
-          }
+      function removeMobileCreateFab(state) {
+        if (state.fab) {
+          state.fab.remove();
+          state.fab = null;
         }
-
-        if (state.floatingContainer) {
-          state.floatingContainer.remove();
-          state.floatingContainer = null;
-        }
-
-        state.newButton = null;
-        state.newButtonParent = null;
-        state.newButtonNextSibling = null;
       }
 
       function findNewEntryButton(root) {
@@ -481,56 +422,6 @@
             if (text.includes("new") && (text.includes("post") || text.includes("entry"))) {
               return node;
             }
-          }
-        }
-        return null;
-      }
-
-      function findEntryListContainer(root) {
-        const selectors = [
-          "[data-testid='collection-content']",
-          "[data-testid='collection-view']",
-          "[data-testid='collection']",
-          "[class*='CollectionContent']",
-          "[class*='CollectionMain']",
-          "[class*='Entries']"
-        ];
-
-        for (const selector of selectors) {
-          const el = root.querySelector(selector);
-          if (el) return el;
-        }
-
-        const main =
-          root.querySelector('[data-testid="editor-pane"]') ||
-          root.querySelector("[role='main']") ||
-          root.querySelector("main");
-        return main;
-      }
-
-      function findSortByElement(root) {
-        const selectors = [
-          "[data-testid='collection-sort']",
-          "[class*='CollectionSort']",
-          "[class*='Sort'] label",
-          "[class*='Sort'] span"
-        ];
-
-        for (const selector of selectors) {
-          const nodes = root.querySelectorAll(selector);
-          for (const node of nodes) {
-            const text = (node.textContent || "").trim().toLowerCase();
-            if (text.startsWith("sort by")) {
-              return node;
-            }
-          }
-        }
-
-        const candidates = root.querySelectorAll("label, span, div, p, strong");
-        for (const node of candidates) {
-          const text = (node.textContent || "").trim().toLowerCase();
-          if (text.startsWith("sort by")) {
-            return node;
           }
         }
         return null;
@@ -596,7 +487,7 @@
       #cms-mobile-toolbar,
       #cms-mobile-collections-button,
       #cms-mobile-collections-overlay,
-      #cms-mobile-floating-button {
+      #cms-mobile-create-post {
         display: none;
       }
 
@@ -653,20 +544,14 @@
           background: #3730a3;
         }
 
-        #cms-mobile-floating-button {
+        #cms-mobile-create-post {
           position: fixed;
           right: 1rem;
           bottom: calc(1.15rem + env(safe-area-inset-bottom, 0));
           z-index: 1003;
-          display: inline-flex;
-          pointer-events: none;
-        }
-
-        #cms-mobile-floating-button .cms-mobile-new-button,
-        #nc-root .cms-mobile-new-button {
-          display: inline-flex !important;
+          display: none;
           align-items: center;
-          justify-content: center;
+          gap: 0.45rem;
           padding: 0.65rem 1.15rem;
           border-radius: 999px;
           border: none;
@@ -676,20 +561,16 @@
           font-size: 0.95rem;
           box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
           text-decoration: none;
+          cursor: pointer;
         }
 
-        #cms-mobile-floating-button .cms-mobile-new-button {
-          pointer-events: auto;
+        #cms-mobile-create-post span[aria-hidden="true"] {
+          font-size: 1.15rem;
+          line-height: 1;
         }
 
-        #cms-mobile-floating-button .cms-mobile-new-button:focus,
-        #nc-root .cms-mobile-new-button:focus {
-          outline: none;
-        }
-
-        #cms-mobile-floating-button .cms-mobile-new-button:active,
-        #nc-root .cms-mobile-new-button:active {
-          transform: translateY(1px);
+        #cms-mobile-create-post.visible {
+          display: inline-flex;
         }
 
         #cms-mobile-collections-overlay {
@@ -763,10 +644,6 @@
         #nc-root [role="dialog"] input,
         #nc-root [role="dialog"] label {
           font-size: 16px !important;
-        }
-
-        #cms-mobile-floating-button {
-          pointer-events: none;
         }
       }
     </style>
