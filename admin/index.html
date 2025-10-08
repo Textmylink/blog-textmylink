@@ -366,34 +366,34 @@
       }
 
       function ensureMobileCreateFab(root, state) {
-        const trigger = findNewEntryButton(root);
-        if (!trigger) {
+        const targetCollection = getDefaultCollectionName();
+        if (!targetCollection) {
           removeMobileCreateFab(state);
           return;
         }
 
+        const targetRoute = `#/collections/${encodeURIComponent(targetCollection)}/new`;
+
         if (!state.fab || !document.body.contains(state.fab)) {
-          const fab = document.createElement("button");
+          const fab = document.createElement("a");
           fab.id = "cms-mobile-create-post";
-          fab.type = "button";
+          fab.href = targetRoute;
           fab.className = "cms-mobile-create-post";
-                    fab.innerHTML = '<span aria-hidden="true">+</span><span> New Blog Post</span>';
+          fab.setAttribute("role", "button");
+          fab.setAttribute("aria-label", "Create a new blog post");
+          fab.innerHTML =
+            '<span aria-hidden="true" class="cms-mobile-create-post__icon">＋</span><span>New Blog Post</span>';
           fab.addEventListener("click", (event) => {
             event.preventDefault();
-            const latestTrigger =
-              findNewEntryButton(document.getElementById("nc-root") || document) ||
-              findNewEntryButton(document);
-            if (latestTrigger) {
-              latestTrigger.click();
-            } else {
-              console.warn("Unable to locate the native \"New Post\" button.");
-            }
+            window.location.hash = targetRoute;
           });
           document.body.appendChild(fab);
           state.fab = fab;
         }
 
         if (state.fab) {
+          state.fab.href = targetRoute;
+          state.fab.dataset.collection = targetCollection;
           state.fab.classList.add("visible");
         }
       }
@@ -403,28 +403,6 @@
           state.fab.remove();
           state.fab = null;
         }
-      }
-
-      function findNewEntryButton(root) {
-        const selectors = [
-          "[data-testid='collection-create-new-button']",
-          "[data-testid='collection-create-new']",
-          "[class*='NewButton'] button",
-          "[class*='CollectionHeader'] button",
-          "button"
-        ];
-
-        for (const selector of selectors) {
-          const nodes = root.querySelectorAll(selector);
-          for (const node of nodes) {
-            const text = (node.textContent || "").trim().toLowerCase();
-            if (!text) continue;
-            if (text.includes("new") && (text.includes("post") || text.includes("entry"))) {
-              return node;
-            }
-          }
-        }
-        return null;
       }
 
       function setCollectionsOpen(open, state) {
@@ -479,6 +457,46 @@
           }
         }
         return null;
+      }
+
+      function getDefaultCollectionName() {
+        const hash = window.location.hash || "";
+        const hashMatch = hash.match(/#\/collections\/([^/]+)/);
+        if (hashMatch && hashMatch[1]) {
+          return decodeURIComponent(hashMatch[1]);
+        }
+
+        try {
+          const cms = window.CMS;
+          if (cms && typeof cms.getCollections === "function") {
+            const collections = cms.getCollections();
+            if (collections && typeof collections.valueSeq === "function") {
+              const first = collections
+                .valueSeq()
+                .find((collection) => collection && collection.get && collection.get("create") !== false);
+              if (first && typeof first.get === "function") {
+                return first.get("name");
+              }
+            }
+          }
+        } catch (error) {
+          console.warn("Unable to derive collection from CMS state:", error);
+        }
+
+        try {
+          const globalConfig =
+            window.__DECAP_CMS_INITIAL_STATE__?.config || window.__NETLIFY_CMS_DATA__?.config || null;
+          if (globalConfig && Array.isArray(globalConfig.collections) && globalConfig.collections.length > 0) {
+            const firstWritable = globalConfig.collections.find((collection) => collection && collection.create !== false);
+            if (firstWritable && firstWritable.name) {
+              return firstWritable.name;
+            }
+          }
+        } catch (error) {
+          console.warn("Unable to derive collection from global config:", error);
+        }
+
+        return "blog";
       }
     </script>
   </body>
