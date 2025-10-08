@@ -90,7 +90,10 @@
           navNextSibling: null
         };
 
+        let applyScheduled = false;
+
         const applyTweaks = () => {
+          applyScheduled = false;
           const root = document.getElementById("nc-root");
           if (!root) return;
 
@@ -111,9 +114,10 @@
           if (layout) {
             if (isMobile) {
               applyMobileStyles(layout, {
-                flexDirection: "column",
-                alignItems: "stretch",
-                width: "100%"
+                display: "block",
+                width: "100%",
+                gridTemplateColumns: "minmax(0, 1fr)",
+                margin: "0"
               });
             } else {
               resetMobileStyles(layout);
@@ -129,7 +133,10 @@
               applyMobileStyles(mainPane, {
                 marginLeft: "0",
                 width: "100%",
-                maxWidth: "100%"
+                maxWidth: "100%",
+                gridColumn: "1 / -1",
+                paddingLeft: "0",
+                paddingRight: "0"
               });
             } else {
               resetMobileStyles(mainPane);
@@ -171,7 +178,13 @@
           }
         };
 
-        const observer = new MutationObserver(() => applyTweaks());
+        const scheduleApply = () => {
+          if (applyScheduled) return;
+          applyScheduled = true;
+          requestAnimationFrame(applyTweaks);
+        };
+
+        const observer = new MutationObserver(() => scheduleApply());
         const observeRoot = () => {
           const root = document.getElementById("nc-root");
           if (!root) {
@@ -179,16 +192,16 @@
             return;
           }
           observer.observe(root, { childList: true, subtree: true });
-          applyTweaks();
+          scheduleApply();
         };
 
         observeRoot();
         if (typeof MOBILE_QUERY.addEventListener === "function") {
-          MOBILE_QUERY.addEventListener("change", applyTweaks);
+          MOBILE_QUERY.addEventListener("change", scheduleApply);
         } else if (typeof MOBILE_QUERY.addListener === "function") {
-          MOBILE_QUERY.addListener(applyTweaks);
+          MOBILE_QUERY.addListener(scheduleApply);
         }
-        window.addEventListener("resize", applyTweaks, { passive: true });
+        window.addEventListener("resize", scheduleApply, { passive: true });
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
             setCollectionsOpen(false, state);
