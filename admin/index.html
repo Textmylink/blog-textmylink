@@ -402,7 +402,7 @@
           right: "1rem",
           bottom: "calc(1.15rem + env(safe-area-inset-bottom, 0))",
           zIndex: "1003",
-          display: "inline-flex",
+          display: "none",
           pointerEvents: "none"
         });
 
@@ -423,9 +423,17 @@
           pointerEvents: "auto"
         });
 
+        if (!btn.dataset.mobileFabBound) {
+          btn.dataset.mobileFabBound = "true";
+          btn.addEventListener("focus", () => container.classList.add("visible"));
+          btn.addEventListener("blur", () => container.classList.remove("visible"));
+        }
+
         if (btn.parentNode !== container) {
           container.appendChild(btn);
         }
+
+        requestAnimationFrame(() => container.classList.add("visible"));
       }
 
       function resetMobileNewEntryButton(state) {
