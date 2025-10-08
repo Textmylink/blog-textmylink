@@ -8,33 +8,57 @@
   <body>
     <style>
       @media (max-width: 900px) {
-        .nc-app-collection-panel {
-          position: static !important;
-          width: 100% !important;
-          max-width: none !important;
-        }
-
-        .nc-app-editor-with-preview {
-          margin-left: 0 !important;
-        }
-
-        .nc-app-main {
+        #nc-root {
           overflow-x: hidden;
         }
 
-        .nc-media-library-modal {
+        #nc-root aside,
+        #nc-root [role="navigation"] {
+          position: static !important;
           width: 100% !important;
-          left: 0 !important;
-          right: 0 !important;
+          max-width: none !important;
+          height: auto !important;
+          min-height: 0 !important;
         }
 
-        .nc-media-library-modal .nc-media-library-content {
+        #nc-root [data-testid="editor-pane"],
+        #nc-root main,
+        #nc-root [role="main"] {
+          margin-left: 0 !important;
+          width: 100% !important;
           max-width: 100% !important;
         }
 
-        .nc-media-library-modal button,
-        .nc-media-library-modal input,
-        .nc-media-library-modal label {
+        #nc-root [data-testid="app-container"],
+        #nc-root [data-testid="workspace"],
+        #nc-root [class*="Layout"],
+        #nc-root [class*="Container"] {
+          flex-direction: column !important;
+          align-items: stretch !important;
+        }
+
+        #nc-root [class*="Pane"],
+        #nc-root [class*="EditorPane"] {
+          max-width: 100% !important;
+        }
+
+        #nc-root [class*="MediaLibrary"],
+        #nc-root [role="dialog"] {
+          width: 100% !important;
+          max-width: 100% !important;
+          left: 0 !important;
+          right: 0 !important;
+          margin: 0 !important;
+        }
+
+        #nc-root [role="dialog"] .nc-media-library-content,
+        #nc-root [role="dialog"] [class*="MediaLibraryContent"] {
+          max-width: 100% !important;
+        }
+
+        #nc-root [role="dialog"] button,
+        #nc-root [role="dialog"] input,
+        #nc-root [role="dialog"] label {
           font-size: 16px !important;
         }
       }
@@ -60,16 +84,131 @@
       (function initCms() {
         if (window.CMS && typeof window.CMS.init === "function") {
           window.CMS.init();
+          setupMobileEnhancements();
           return;
         }
         if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
           window.NetlifyCmsApp.init();
+          setupMobileEnhancements();
           return;
         }
         const message = "Netlify CMS failed to load. Check the browser console for details.";
         console.error(message);
         document.body.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
       })();
+
+      function setupMobileEnhancements() {
+        const applyTweaks = () => {
+          if (!window.matchMedia("(max-width: 900px)").matches) {
+            return;
+          }
+          const root = document.getElementById("nc-root");
+          if (!root) return;
+
+          const sidebar = findSidebar(root);
+          if (sidebar && !sidebar.dataset.mobileAdjusted) {
+            sidebar.dataset.mobileAdjusted = "true";
+            Object.assign(sidebar.style, {
+              position: "static",
+              width: "100%",
+              maxWidth: "none",
+              height: "auto",
+              minHeight: "0",
+              boxShadow: "none"
+            });
+          }
+
+          const layout = sidebar ? findFlexParent(sidebar) : null;
+          if (layout && !layout.dataset.mobileAdjusted) {
+            layout.dataset.mobileAdjusted = "true";
+            layout.style.flexDirection = "column";
+            layout.style.alignItems = "stretch";
+            layout.style.width = "100%";
+          }
+
+          const mainPane =
+            root.querySelector('[data-testid="editor-pane"]') ||
+            root.querySelector("[role='main']") ||
+            root.querySelector("main");
+          if (mainPane && !mainPane.dataset.mobileAdjusted) {
+            mainPane.dataset.mobileAdjusted = "true";
+            Object.assign(mainPane.style, {
+              marginLeft: "0",
+              width: "100%",
+              maxWidth: "100%"
+            });
+          }
+
+          const modal = findMediaModal();
+          if (modal && !modal.dataset.mobileAdjusted) {
+            modal.dataset.mobileAdjusted = "true";
+            Object.assign(modal.style, {
+              width: "100%",
+              maxWidth: "100%",
+              left: "0",
+              right: "0",
+              margin: "0",
+              height: "100%",
+              maxHeight: "100%"
+            });
+
+            const modalContent =
+              modal.querySelector(".nc-media-library-content") ||
+              modal.querySelector("[class*='MediaLibraryContent']");
+            if (modalContent) {
+              modalContent.style.maxWidth = "100%";
+            }
+          }
+        };
+
+        const observer = new MutationObserver(() => applyTweaks());
+        const observeRoot = () => {
+          const root = document.getElementById("nc-root");
+          if (!root) {
+            requestAnimationFrame(observeRoot);
+            return;
+          }
+          observer.observe(root, { childList: true, subtree: true });
+          applyTweaks();
+        };
+
+        observeRoot();
+        window.addEventListener("resize", applyTweaks, { passive: true });
+      }
+
+      function findSidebar(root) {
+        const navCandidates = root.querySelectorAll("[role='navigation'], aside");
+        for (const el of navCandidates) {
+          const text = el.textContent || "";
+          if (text.toLowerCase().includes("collections")) {
+            return el;
+          }
+        }
+        return navCandidates[0] || null;
+      }
+
+      function findFlexParent(element) {
+        let current = element.parentElement;
+        while (current) {
+          const style = window.getComputedStyle(current);
+          if (style.display.includes("flex")) {
+            return current;
+          }
+          current = current.parentElement;
+        }
+        return null;
+      }
+
+      function findMediaModal() {
+        const dialogs = document.querySelectorAll("[role='dialog'], [data-testid*='modal']");
+        for (const dialog of dialogs) {
+          const text = (dialog.getAttribute("aria-label") || dialog.textContent || "").toLowerCase();
+          if (text.includes("media library") || text.includes("upload")) {
+            return dialog;
+          }
+        }
+        return null;
+      }
     </script>
   </body>
 </html>
