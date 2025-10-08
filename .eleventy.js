@@ -64,7 +64,7 @@ module.exports = function (eleventyConfig) {
       .trim();
     if (!text) return "";
     if (text.length <= length) return text;
-    return `${text.slice(0, length).trim()}…`;
+    return `${text.slice(0, length).trim()}...`;
   });
 
   eleventyConfig.addFilter("filterTags", (tags = []) => {

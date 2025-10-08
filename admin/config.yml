@@ -14,6 +14,12 @@ collections:
     slug: "{{slug}}"
     preview_path: "posts/{{slug}}"
     fields:
+      - label: "Keep as Draft?"
+        name: "draft"
+        widget: "boolean"
+        required: false
+        default: true
+        hint: "Leave checked while you're still working. Uncheck to publish."
       - { label: "Title", name: "title", widget: "string" }
       - { label: "Description", name: "description", widget: "text" }
       - label: "SEO Title"
