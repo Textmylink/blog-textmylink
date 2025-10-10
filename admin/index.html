@@ -9,18 +9,14 @@
         color-scheme: light;
         font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont,
           "Helvetica Neue", Arial, sans-serif;
-        --cms-shell-bg: #f8fafc;
-        --cms-shell-surface: #ffffff;
-        --cms-shell-border: #e2e8f0;
-        --cms-shell-border-strong: #cbd5f5;
-        --cms-shell-text: #0f172a;
-        --cms-shell-text-soft: #475569;
-        --cms-shell-muted: #94a3b8;
-        --cms-shell-primary: #2563eb;
-        --cms-shell-primary-strong: #1d4ed8;
-        --cms-shell-primary-soft: rgba(37, 99, 235, 0.12);
-        --cms-shell-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
-        --cms-shell-radius: 18px;
+        --shell-bg: #f4f6fb;
+        --shell-surface: #ffffff;
+        --shell-text: #0f172a;
+        --shell-text-muted: #64748b;
+        --shell-primary: #2563eb;
+        --shell-primary-strong: #1d4ed8;
+        --shell-border: #e2e8f0;
+        --shell-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
       }
 
       * {
@@ -31,501 +27,373 @@
         margin: 0;
         min-height: 100vh;
         font-family: inherit;
-        color: var(--cms-shell-text);
-        background: var(--cms-shell-bg);
+        background: var(--shell-bg);
+        color: var(--shell-text);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        -webkit-text-size-adjust: 100%;
       }
 
       a {
         color: inherit;
+        text-decoration: none;
+      }
+
+      button {
+        font: inherit;
       }
 
       #nc-root {
-        width: 100%;
         min-height: 100vh;
+        width: 100%;
+        padding: calc(4.5rem + env(safe-area-inset-top, 0px)) 1rem
+          calc(3.25rem + env(safe-area-inset-bottom, 0px));
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
-        padding: calc(4.6rem + env(safe-area-inset-top, 0px)) 1.1rem
-          calc(5rem + env(safe-area-inset-bottom, 0px));
+        gap: 1rem;
       }
 
       #nc-root > * {
         max-width: 100%;
       }
 
-      .cms-mobile-toolbar,
-      #cms-mobile-toolbar,
-      #cms-mobile-overlay,
-      #cms-mobile-collections-drawer {
-        display: none;
-      }
-
-      body.cms-mobile-shell {
-        background: var(--cms-shell-bg);
-      }
-
-      body.cms-mobile-shell #nc-root {
-        padding: calc(4.75rem + env(safe-area-inset-top, 0px)) 1.05rem
-          calc(5rem + env(safe-area-inset-bottom, 0px));
-        gap: 1.25rem;
-      }
-
-      body.cms-mobile-shell--editing #nc-root {
-        padding-bottom: calc(7.25rem + env(safe-area-inset-bottom, 0px));
-      }
-
-      body.cms-mobile-shell #cms-mobile-toolbar {
+      .cms-shell-header {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        z-index: 1005;
+        z-index: 1000;
         display: flex;
         align-items: center;
-        gap: 0.85rem;
+        gap: 0.75rem;
         padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 1rem 0.75rem;
-        background: rgba(248, 250, 252, 0.94);
-        backdrop-filter: blur(18px);
-        border-bottom: 1px solid rgba(148, 163, 184, 0.32);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
       }
 
-      body.cms-mobile-shell #cms-mobile-overlay,
-      body.cms-mobile-shell #cms-mobile-collections-drawer {
-        display: block;
-      }
-
-      body.cms-mobile-shell #cms-mobile-toolbar button,
-      body.cms-mobile-shell #cms-mobile-toolbar a {
-        font-family: inherit;
-      }
-
-      #cms-mobile-nav-toggle {
-        appearance: none;
-        border: none;
-        border-radius: 14px;
-        background: #1f2937;
-        color: #fff;
-        padding: 0.65rem 0.85rem;
+      .cms-shell-menu {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 0.45rem;
+        padding: 0.55rem 0.9rem;
+        border: none;
+        border-radius: 12px;
+        background: #111827;
+        color: #fff;
         font-weight: 600;
-        font-size: 0.9rem;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+        font-size: 0.95rem;
         cursor: pointer;
-        transition: background 0.2s ease, transform 0.2s ease;
       }
 
-      #cms-mobile-nav-toggle:active {
-        transform: scale(0.97);
-      }
-
-      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon,
-      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon::before,
-      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon::after {
+      .cms-shell-menu::before {
+        content: "";
         display: block;
-        width: 18px;
+        width: 16px;
         height: 2px;
         background: currentColor;
         border-radius: 999px;
-        content: "";
+        box-shadow: 0 5px 0 currentColor, 0 -5px 0 currentColor;
       }
 
-      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon {
-        position: relative;
-      }
-
-      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon::before {
-        position: absolute;
-        top: -6px;
-      }
-
-      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon::after {
-        position: absolute;
-        bottom: -6px;
-      }
-
-      #cms-mobile-toolbar .cms-mobile-nav-toggle__text {
-        font-size: 0.85rem;
-        letter-spacing: 0.04em;
+      .cms-shell-menu__label {
+        letter-spacing: 0.05em;
         text-transform: uppercase;
+        font-size: 0.75rem;
       }
 
-      body.cms-mobile-shell--nav-open #cms-mobile-nav-toggle {
-        background: #111827;
-      }
-
-      #cms-mobile-brand {
+      .cms-shell-title {
         display: flex;
         flex-direction: column;
-        gap: 0.2rem;
         min-width: 0;
       }
 
-      #cms-mobile-brand .cms-mobile-brand__eyebrow {
-        font-size: 0.72rem;
-        letter-spacing: 0.26em;
+      .cms-shell-title__eyebrow {
+        font-size: 0.7rem;
+        letter-spacing: 0.22em;
         text-transform: uppercase;
-        color: var(--cms-shell-muted);
+        color: var(--shell-text-muted);
         font-weight: 700;
       }
 
-      #cms-mobile-brand .cms-mobile-brand__crumb {
+      .cms-shell-title__route {
         font-size: 1.05rem;
         font-weight: 700;
-        color: var(--cms-shell-text);
+        color: var(--shell-text);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
 
-      #cms-mobile-toolbar .cms-mobile-toolbar__actions {
+      .cms-shell-primary {
         margin-left: auto;
-        display: flex;
-        align-items: center;
-      }
-
-      #cms-mobile-create-primary {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0.65rem 1.15rem;
+        padding: 0.55rem 1.1rem;
         border-radius: 999px;
-        border: none;
-        background: var(--cms-shell-primary);
+        background: var(--shell-primary);
         color: #fff;
         font-weight: 600;
-        font-size: 0.92rem;
-        text-decoration: none;
-        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.25);
+        font-size: 0.95rem;
         transition: background 0.2s ease, transform 0.2s ease;
+        box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
       }
 
-      #cms-mobile-create-primary:active {
-        transform: scale(0.98);
+      .cms-shell-primary:active {
+        transform: scale(0.97);
       }
 
-      body.cms-mobile-shell--editing #cms-mobile-create-primary {
+      .cms-shell-primary[hidden] {
         display: none !important;
       }
 
-      #cms-mobile-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.4);
-        z-index: 1003;
+      body.cms-shell-editing .cms-shell-primary {
+        display: none !important;
       }
 
-      #cms-mobile-collections-drawer {
+      #cms-shell-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        z-index: 998;
+        display: none;
+      }
+
+      #cms-shell-overlay[hidden] {
+        display: none;
+      }
+
+      body.cms-shell-drawer-open {
+        overflow: hidden;
+      }
+
+      body.cms-shell-drawer-open #cms-shell-overlay {
+        display: block;
+      }
+
+      #cms-shell-drawer {
         position: fixed;
         top: 0;
         left: 0;
         bottom: 0;
-        width: min(82vw, 340px);
-        max-width: calc(100vw - 32px);
-        background: var(--cms-shell-surface);
-        padding: calc(1.3rem + env(safe-area-inset-top, 0px)) 1.1rem 1.4rem;
-        box-shadow: 20px 0 48px rgba(15, 23, 42, 0.32);
+        width: min(88vw, 340px);
+        background: var(--shell-surface);
+        padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.15rem 1.6rem;
+        box-shadow: 18px 0 42px rgba(15, 23, 42, 0.24);
         transform: translateX(-110%);
-        transition: transform 0.25s ease;
-        z-index: 1004;
-        overflow-y: auto;
-      }
-
-      #cms-mobile-collections-drawer h2 {
-        margin: 0;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--cms-shell-text);
-      }
-
-      #cms-mobile-collections-drawer p {
-        margin: 0.25rem 0 1.25rem;
-        font-size: 0.85rem;
-        color: var(--cms-shell-muted);
-      }
-
-      #cms-mobile-collections-drawer nav,
-      #cms-mobile-collections-drawer [data-cms-mobile-nav] {
+        transition: transform 0.22s ease;
+        z-index: 999;
         display: flex;
         flex-direction: column;
-        gap: 0.45rem;
+        gap: 1rem;
       }
 
-      #cms-mobile-collections-drawer a,
-      #cms-mobile-collections-drawer button {
+      body.cms-shell-drawer-open #cms-shell-drawer {
+        transform: translateX(0);
+      }
+
+      #cms-shell-drawer[aria-hidden="true"] {
+        pointer-events: none;
+      }
+
+      .cms-shell-drawer__header h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+
+      .cms-shell-drawer__header p {
+        margin: 0.2rem 0 0;
+        font-size: 0.85rem;
+        color: var(--shell-text-muted);
+      }
+
+      .cms-shell-drawer__content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+
+      .cms-shell-drawer__content a,
+      .cms-shell-drawer__content button {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 0.35rem;
-        padding: 0.75rem 0.9rem;
+        padding: 0.7rem 0.85rem;
         border-radius: 0.85rem;
-        text-decoration: none;
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid transparent;
         font-weight: 600;
         font-size: 0.95rem;
-        background: rgba(148, 163, 184, 0.08);
-        color: var(--cms-shell-text);
-        border: 1px solid transparent;
       }
 
-      #cms-mobile-collections-drawer a:hover,
-      #cms-mobile-collections-drawer button:hover {
-        background: rgba(148, 163, 184, 0.16);
+      .cms-shell-drawer__content a:hover,
+      .cms-shell-drawer__content button:hover {
+        background: rgba(148, 163, 184, 0.22);
       }
 
-      body.cms-mobile-shell--nav-open #cms-mobile-overlay {
-        display: block;
+      .cms-shell-empty {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--shell-text-muted);
       }
 
-      body.cms-mobile-shell--nav-open #cms-mobile-collections-drawer {
-        transform: translateX(0);
-      }
-
-      body.cms-mobile-shell [data-cms-mobile-nav-source] {
+      body.cms-shell-mobile [data-cms-shell-nav-source] {
         display: none !important;
       }
 
-      body.cms-mobile-shell #nc-root [data-testid="app-container"],
-      body.cms-mobile-shell #nc-root [data-testid="workspace"],
-      body.cms-mobile-shell #nc-root [class*="Layout"],
-      body.cms-mobile-shell #nc-root [class*="Container"],
-      body.cms-mobile-shell #nc-root [class*="Pane"],
-      body.cms-mobile-shell #nc-root [role="main"],
-      body.cms-mobile-shell #nc-root main {
+      body.cms-shell-mobile #nc-root header[role="banner"],
+      body.cms-shell-mobile #nc-root header[role="toolbar"],
+      body.cms-shell-mobile #nc-root nav[role="navigation"],
+      body.cms-shell-mobile #nc-root [class*="Header"],
+      body.cms-shell-mobile #nc-root [class*="Toolbar"],
+      body.cms-shell-mobile #nc-root [class*="Controls"] {
         display: flex !important;
         flex-direction: column !important;
+        gap: 0.65rem !important;
         align-items: stretch !important;
+      }
+
+      body.cms-shell-mobile #nc-root header[role="banner"] > *,
+      body.cms-shell-mobile #nc-root header[role="toolbar"] > *,
+      body.cms-shell-mobile #nc-root nav[role="navigation"] > *,
+      body.cms-shell-mobile #nc-root [class*="Toolbar"] > * {
         width: 100% !important;
         max-width: 100% !important;
       }
 
-      body.cms-mobile-shell #nc-root header[role="banner"],
-      body.cms-mobile-shell #nc-root header[role="toolbar"],
-      body.cms-mobile-shell #nc-root [class*="CollectionHeader"],
-      body.cms-mobile-shell #nc-root [class*="EditorHeader"],
-      body.cms-mobile-shell #nc-root nav[role="navigation"],
-      body.cms-mobile-shell #nc-root [class*="HeaderToolbar"],
-      body.cms-mobile-shell #nc-root [class*="CollectionControls"] {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 0.75rem !important;
-        align-items: stretch !important;
-      }
-
-      body.cms-mobile-shell #nc-root header[role="banner"] > *,
-      body.cms-mobile-shell #nc-root header[role="toolbar"] > *,
-      body.cms-mobile-shell #nc-root [class*="CollectionHeader"] > *,
-      body.cms-mobile-shell #nc-root [class*="EditorHeader"] > * {
-        width: 100% !important;
-        max-width: 100% !important;
-      }
-
-      body.cms-mobile-shell #nc-root nav[role="navigation"] a,
-      body.cms-mobile-shell #nc-root nav[role="navigation"] button,
-      body.cms-mobile-shell #nc-root [class*="HeaderToolbar"] > *,
-      body.cms-mobile-shell #nc-root [class*="CollectionControls"] > * {
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-      }
-
-      body.cms-mobile-shell #nc-root [class*="Card"],
-      body.cms-mobile-shell #nc-root .nc-entryListingCard,
-      body.cms-mobile-shell #nc-root [class*="ListCard"],
-      body.cms-mobile-shell #nc-root [class*="WorkflowCard"] {
-        border-radius: var(--cms-shell-radius) !important;
-        box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14) !important;
-        border: 1px solid rgba(148, 163, 184, 0.14) !important;
-        background: var(--cms-shell-surface) !important;
-      }
-
-      body.cms-mobile-shell #nc-root [class*="ControlPane"],
-      body.cms-mobile-shell #nc-root [class*="EditorControl"],
-      body.cms-mobile-shell #nc-root [class*="WidgetWrapper"],
-      body.cms-mobile-shell #nc-root .nc-controlPane-control {
-        gap: 0.6rem !important;
-      }
-
-      body.cms-mobile-shell #nc-root label,
-      body.cms-mobile-shell #nc-root .nc-controlPane-label,
-      body.cms-mobile-shell #nc-root [class*="Label"] {
-        font-weight: 600 !important;
-        font-size: 0.92rem !important;
-        color: var(--cms-shell-text) !important;
-      }
-
-      body.cms-mobile-shell #nc-root input,
-      body.cms-mobile-shell #nc-root textarea,
-      body.cms-mobile-shell #nc-root select,
-      body.cms-mobile-shell #nc-root .nc-controlPane-control input,
-      body.cms-mobile-shell #nc-root .nc-controlPane-control textarea,
-      body.cms-mobile-shell #nc-root .nc-controlPane-control select {
+      body.cms-shell-mobile #nc-root button,
+      body.cms-shell-mobile #nc-root .nc-button,
+      body.cms-shell-mobile #nc-root [class*="Button"],
+      body.cms-shell-mobile #nc-root [role="toolbar"] a {
+        border-radius: 12px !important;
         font-size: 1rem !important;
         padding: 0.75rem 0.9rem !important;
-        border-radius: 0.9rem !important;
-        border: 1px solid var(--cms-shell-border) !important;
-        background: var(--cms-shell-surface) !important;
+      }
+
+      body.cms-shell-mobile #nc-root .nc-entryListingCard,
+      body.cms-shell-mobile #nc-root [class*="Card"],
+      body.cms-shell-mobile #nc-root [class*="Pane"],
+      body.cms-shell-mobile #nc-root [class*="Workflow"] {
+        border-radius: 18px !important;
+        box-shadow: var(--shell-shadow) !important;
+        border: 1px solid rgba(148, 163, 184, 0.16) !important;
+        background: var(--shell-surface) !important;
+      }
+
+      body.cms-shell-mobile #nc-root label,
+      body.cms-shell-mobile #nc-root .nc-controlPane-label,
+      body.cms-shell-mobile #nc-root [class*="Label"] {
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        color: var(--shell-text) !important;
+      }
+
+      body.cms-shell-mobile #nc-root input,
+      body.cms-shell-mobile #nc-root textarea,
+      body.cms-shell-mobile #nc-root select {
+        font-size: 1rem !important;
+        padding: 0.75rem 0.9rem !important;
+        border-radius: 0.95rem !important;
+        border: 1px solid var(--shell-border) !important;
         box-shadow: none !important;
       }
 
-      body.cms-mobile-shell #nc-root textarea {
-        min-height: 160px !important;
-      }
-
-      body.cms-mobile-shell #nc-root [class*="MediaLibrary"],
-      body.cms-mobile-shell #nc-root [role="dialog"],
-      body.cms-mobile-shell #nc-root [data-testid*="modal"] {
-        width: 100% !important;
-        max-width: 100% !important;
-        left: 0 !important;
-        right: 0 !important;
-        margin: 0 !important;
-      }
-
-      body.cms-mobile-shell #nc-root [role="dialog"] .nc-media-library-content,
-      body.cms-mobile-shell #nc-root [role="dialog"] [class*="MediaLibraryContent"] {
-        max-width: 100% !important;
-      }
-
-      body.cms-mobile-shell #nc-root table {
+      body.cms-shell-mobile #nc-root table {
         width: 100%;
         display: block;
         border-collapse: collapse;
         background: transparent;
       }
 
-      body.cms-mobile-shell #nc-root thead {
+      body.cms-shell-mobile #nc-root thead {
         display: none !important;
       }
 
-      body.cms-mobile-shell #nc-root tbody {
+      body.cms-shell-mobile #nc-root tbody {
         display: grid;
-        gap: 0.85rem;
+        gap: 0.8rem;
         padding: 0;
+        margin: 0;
       }
 
-      body.cms-mobile-shell #nc-root tbody tr {
+      body.cms-shell-mobile #nc-root tbody tr {
         display: grid;
-        gap: 0.4rem;
+        gap: 0.45rem;
         padding: 0.9rem 1rem;
         border-radius: 1rem;
-        background: var(--cms-shell-surface);
-        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+        background: var(--shell-surface);
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
         border: 1px solid rgba(148, 163, 184, 0.14);
       }
 
-      body.cms-mobile-shell #nc-root td {
+      body.cms-shell-mobile #nc-root td {
         display: flex;
         flex-direction: column;
         gap: 0.1rem;
         font-size: 0.95rem;
       }
 
-      body.cms-mobile-shell #nc-root td::before {
+      body.cms-shell-mobile #nc-root td::before {
         content: attr(data-header);
         font-size: 0.68rem;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: var(--cms-shell-muted);
+        color: var(--shell-text-muted);
         font-weight: 700;
       }
 
-      body.cms-mobile-shell #nc-root td a {
-        font-weight: 600;
-        color: var(--cms-shell-primary);
-      }
+      @media (min-width: 960px) {
+        #nc-root {
+          padding: 6rem 3.5rem 3.5rem;
+        }
 
-      body.cms-mobile-shell #nc-root [class*="Toolbar"] button,
-      body.cms-mobile-shell #nc-root [class*="Toolbar"] a,
-      body.cms-mobile-shell #nc-root button,
-      body.cms-mobile-shell #nc-root .nc-button,
-      body.cms-mobile-shell #nc-root .nc-entryListingCard button {
-        border-radius: 999px !important;
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
-        padding: 0.65rem 0.9rem !important;
-      }
+        .cms-shell-header {
+          padding: 1.1rem 3.5rem;
+          position: sticky;
+          background: rgba(255, 255, 255, 0.95);
+        }
 
-      body.cms-mobile-shell #nc-root [class*="EditorToolbar"],
-      body.cms-mobile-shell #nc-root [data-testid="editor-toolbar"] {
-        position: fixed !important;
-        bottom: calc(env(safe-area-inset-bottom, 0px));
-        left: 0;
-        right: 0;
-        padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
-        background: rgba(248, 250, 252, 0.96) !important;
-        border-top: 1px solid rgba(148, 163, 184, 0.28) !important;
-        box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.16) !important;
-        z-index: 1006 !important;
-      }
+        .cms-shell-menu {
+          display: none;
+        }
 
-      body.cms-mobile-shell #nc-root [class*="EditorToolbar"] > *,
-      body.cms-mobile-shell #nc-root [data-testid="editor-toolbar"] > * {
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-      }
-
-      body.cms-mobile-shell #nc-root [class*="EditorToolbar"] button,
-      body.cms-mobile-shell #nc-root [data-testid="editor-toolbar"] button,
-      body.cms-mobile-shell #nc-root [class*="EditorToolbar"] a,
-      body.cms-mobile-shell #nc-root [data-testid="editor-toolbar"] a {
-        width: 100% !important;
-      }
-
-      body.cms-mobile-shell #nc-root [class*="Pane"] [class*="Preview"],
-      body.cms-mobile-shell #nc-root [class*="PreviewPane"],
-      body.cms-mobile-shell #nc-root [data-testid="preview-pane"] {
-        order: 1;
-      }
-
-      body.cms-mobile-shell #nc-root [class*="EditorPane"],
-      body.cms-mobile-shell #nc-root [data-testid="editor-pane"] {
-        order: 0;
-      }
-
-      body.cms-mobile-shell #nc-root [class*="AppHeader"] {
-        margin-top: 0 !important;
-      }
-
-      body.cms-mobile-shell .netlify-identity-modal {
-        width: 100% !important;
-        max-width: 420px !important;
-        margin: 3.5rem auto !important;
-        border-radius: 1.5rem !important;
-      }
-
-      body.cms-mobile-shell .netlify-identity-modal .netlify-identity-form {
-        padding: 1.5rem !important;
-      }
-
-      @media (min-width: 900px) {
-        body.cms-mobile-shell #cms-mobile-toolbar,
-        body.cms-mobile-shell #cms-mobile-overlay,
-        body.cms-mobile-shell #cms-mobile-collections-drawer {
+        #cms-shell-overlay,
+        #cms-shell-drawer {
           display: none !important;
         }
 
-        body.cms-mobile-shell {
-          background: initial;
-        }
-
-        body.cms-mobile-shell #nc-root {
-          padding: 2rem;
+        body.cms-shell-drawer-open {
+          overflow: auto;
         }
       }
     </style>
   </head>
   <body>
-    <div
-      id="cms-mobile-toolbar"
-      class="cms-mobile-toolbar"
-      role="region"
-      aria-label="Primary navigation"
-    ></div>
-    <div id="cms-mobile-overlay" hidden></div>
-    <aside id="cms-mobile-collections-drawer" aria-hidden="true"></aside>
+    <header id="cms-shell-header" class="cms-shell-header" role="banner">
+      <button
+        id="cms-shell-menu"
+        class="cms-shell-menu"
+        type="button"
+        aria-label="Open collections menu"
+        aria-expanded="false"
+      >
+        <span class="cms-shell-menu__label">Menu</span>
+      </button>
+      <div class="cms-shell-title">
+        <span class="cms-shell-title__eyebrow">TextMyLink</span>
+        <span id="cms-shell-route" class="cms-shell-title__route">Admin</span>
+      </div>
+      <a id="cms-shell-primary" class="cms-shell-primary" href="#" hidden>
+        New Entry
+      </a>
+    </header>
+    <div id="cms-shell-overlay" hidden></div>
+    <aside id="cms-shell-drawer" aria-hidden="true"></aside>
+    <div id="nc-root"></div>
 
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
@@ -541,11 +409,10 @@
           return;
         }
 
-        const runInit = () => {
+        const tryInit = () => {
           if (window.CMS && typeof window.CMS.init === "function") {
             window.CMS.init();
-            setupIdentityUI();
-            setupMobileEnhancements();
+            setupMobileShell();
             return true;
           }
           if (
@@ -553,14 +420,13 @@
             typeof window.NetlifyCmsApp.init === "function"
           ) {
             window.NetlifyCmsApp.init();
-            setupIdentityUI();
-            setupMobileEnhancements();
+            setupMobileShell();
             return true;
           }
           return false;
         };
 
-        if (runInit()) {
+        if (tryInit()) {
           cmsHasStarted = true;
           return;
         }
@@ -688,300 +554,251 @@
       setupIdentityUI();
       enforceAuthentication();
 
-      function setupMobileEnhancements() {
-        const MOBILE_QUERY = window.matchMedia("(max-width: 1024px)");
+      function setupMobileShell() {
+        if (setupMobileShell.initialized) {
+          return;
+        }
+        setupMobileShell.initialized = true;
+
         const state = {
-          topBar: document.getElementById("cms-mobile-toolbar"),
-          overlay: document.getElementById("cms-mobile-overlay"),
-          drawer: document.getElementById("cms-mobile-collections-drawer"),
-          navToggle: null,
-          crumb: null,
-          createButton: null,
+          header: document.getElementById("cms-shell-header"),
+          menu: document.getElementById("cms-shell-menu"),
+          overlay: document.getElementById("cms-shell-overlay"),
+          drawer: document.getElementById("cms-shell-drawer"),
+          route: document.getElementById("cms-shell-route"),
+          primary: document.getElementById("cms-shell-primary"),
+          navContainer: null,
         };
 
-        let applyScheduled = false;
-        const observer = new MutationObserver(() => scheduleApply());
+        const MOBILE_QUERY = window.matchMedia("(max-width: 960px)");
+        let observer = null;
+        let scheduled = false;
 
         const scheduleApply = () => {
-          if (applyScheduled) return;
-          applyScheduled = true;
-          requestAnimationFrame(applyTweaks);
+          if (scheduled) return;
+          scheduled = true;
+          requestAnimationFrame(applyShellState);
         };
 
-        const applyTweaks = () => {
-          applyScheduled = false;
+        const applyShellState = () => {
+          scheduled = false;
           const root = document.getElementById("nc-root");
           if (!root) {
             return;
           }
 
           const isMobile = MOBILE_QUERY.matches;
-          document.body.classList.toggle("cms-mobile-shell", isMobile);
+          document.body.classList.toggle("cms-shell-mobile", isMobile);
 
           if (!isMobile) {
-            teardownMobile();
-            resetMobileTables(root);
+            closeDrawer();
+            resetTables(root);
+            document.body.classList.remove("cms-shell-editing");
             return;
           }
 
-          ensureTopBar();
-          ensureOverlay();
-          ensureDrawer();
-          syncDrawerContent(root);
-          updateBreadcrumb();
-          updateCreateButton();
-          transformTablesForMobile(root);
-          updateEditingState(root);
+          ensureDrawerStructure();
+          bindMenu();
+          syncNavigation(root);
+          updateRouteLabel();
+          updatePrimaryButton();
+          updateEditingState();
+          adaptTables(root);
         };
 
-        const teardownMobile = () => {
-          document.body.classList.remove(
-            "cms-mobile-shell--nav-open",
-            "cms-mobile-shell--editing"
-          );
-        if (state.navToggle) {
-          state.navToggle.removeEventListener("click", toggleNavHandler);
-          state.navToggle = null;
-        }
-        state.crumb = null;
-        state.createButton = null;
-        if (state.topBar) {
-          state.topBar.innerHTML = "";
-          delete state.topBar.dataset.bound;
-        }
+        const bindMenu = () => {
+          if (!state.menu || state.menu.dataset.bound === "true") {
+            return;
+          }
+
+          state.menu.addEventListener("click", () => toggleDrawer());
+
           if (state.overlay) {
-            state.overlay.hidden = true;
+            state.overlay.addEventListener("click", () => toggleDrawer(false));
           }
+
           if (state.drawer) {
-            state.drawer.innerHTML = "";
-            state.drawer.setAttribute("aria-hidden", "true");
-            delete state.drawer.dataset.bound;
-          }
-          document
-            .querySelectorAll("[data-cms-mobile-nav-source]")
-            .forEach((element) => {
-              element.removeAttribute("data-cms-mobile-nav-source");
+            state.drawer.addEventListener("click", (event) => {
+              if (event.target.closest("a, button")) {
+                toggleDrawer(false);
+              }
             });
+          }
+
+          state.menu.dataset.bound = "true";
         };
 
-        const toggleNav = (open) => {
-          document.body.classList.toggle("cms-mobile-shell--nav-open", open);
-          if (state.navToggle) {
-            state.navToggle.setAttribute("aria-expanded", open ? "true" : "false");
-            state.navToggle.setAttribute(
-              "aria-label",
-              open ? "Close collections menu" : "Open collections menu"
-            );
-          }
-          if (state.overlay) {
-            state.overlay.hidden = !open;
-          }
-          if (state.drawer) {
-            state.drawer.setAttribute("aria-hidden", open ? "false" : "true");
-          }
-        };
-
-        const toggleNavHandler = () => {
-          const open = !document.body.classList.contains(
-            "cms-mobile-shell--nav-open"
-          );
-          toggleNav(open);
-        };
-
-        const ensureTopBar = () => {
-          if (!state.topBar) {
-            return;
-          }
-          if (state.topBar.dataset.bound === "true") {
+        const ensureDrawerStructure = () => {
+          if (!state.drawer || state.drawer.dataset.prepared === "true") {
             return;
           }
 
-          state.topBar.innerHTML = `
-            <button
-              id="cms-mobile-nav-toggle"
-              class="cms-mobile-nav-toggle"
-              type="button"
-              aria-expanded="false"
-              aria-label="Open collections menu"
-            >
-              <span class="cms-mobile-nav-toggle__icon" aria-hidden="true"></span>
-              <span class="cms-mobile-nav-toggle__text">Menu</span>
-            </button>
-            <div id="cms-mobile-brand">
-              <span class="cms-mobile-brand__eyebrow">TextMyLink</span>
-              <span class="cms-mobile-brand__crumb">Admin</span>
-            </div>
-            <div class="cms-mobile-toolbar__actions">
-              <a id="cms-mobile-create-primary" href="#">New Entry</a>
-            </div>
-          `;
-
-          const toggle = state.topBar.querySelector("#cms-mobile-nav-toggle");
-          const crumb = state.topBar.querySelector(".cms-mobile-brand__crumb");
-          const createButton = state.topBar.querySelector(
-            "#cms-mobile-create-primary"
-          );
-          if (toggle) {
-            toggle.addEventListener("click", toggleNavHandler);
-            state.navToggle = toggle;
-          }
-          state.crumb = crumb;
-          state.createButton = createButton;
-          state.topBar.dataset.bound = "true";
-        };
-
-        const ensureOverlay = () => {
-          if (!state.overlay) {
-            return;
-          }
-          if (state.overlay.dataset.bound === "true") {
-            return;
-          }
-          state.overlay.hidden = true;
-          state.overlay.addEventListener("click", () => toggleNav(false));
-          state.overlay.dataset.bound = "true";
-        };
-
-        const ensureDrawer = () => {
-          if (!state.drawer) {
-            return;
-          }
-          if (state.drawer.dataset.bound === "true") {
-            return;
-          }
           state.drawer.innerHTML = `
-            <div class="cms-mobile-drawer__header">
+            <div class="cms-shell-drawer__header">
               <h2>Collections</h2>
-              <p>Jump into a collection or workflow.</p>
+              <p>Pick something to work on.</p>
             </div>
+            <div class="cms-shell-drawer__content" data-cms-shell-nav></div>
           `;
+
+          state.navContainer = state.drawer.querySelector(
+            "[data-cms-shell-nav]"
+          );
+          state.drawer.dataset.prepared = "true";
           state.drawer.setAttribute("role", "navigation");
           state.drawer.setAttribute("aria-label", "Collections navigation");
-          state.drawer.setAttribute("aria-hidden", "true");
-          state.drawer.addEventListener("click", (event) => {
-            if (event.target.closest("a, button")) {
-              toggleNav(false);
-            }
-          });
-          state.drawer.dataset.bound = "true";
         };
 
-        const syncDrawerContent = (root) => {
-          if (!state.drawer) {
-            return;
-          }
-          const nav = findSidebar(root);
-          if (!nav) {
-            state.drawer.setAttribute("aria-hidden", "true");
-            toggleNav(false);
-            return;
-          }
+        const toggleDrawer = (force) => {
+          const shouldOpen =
+            typeof force === "boolean"
+              ? force
+              : !document.body.classList.contains("cms-shell-drawer-open");
 
-          nav.dataset.cmsMobileNavSource = "true";
+          document.body.classList.toggle("cms-shell-drawer-open", shouldOpen);
 
-          const existing = state.drawer.querySelector("[data-cms-mobile-nav]");
-          if (existing) {
-            existing.remove();
+          if (state.overlay) {
+            state.overlay.hidden = !shouldOpen;
           }
 
-          const clone = nav.cloneNode(true);
-          clone.dataset.cmsMobileNav = "true";
-          state.drawer.appendChild(clone);
+          if (state.drawer) {
+            state.drawer.setAttribute(
+              "aria-hidden",
+              shouldOpen ? "false" : "true"
+            );
+          }
+
+          if (state.menu) {
+            state.menu.setAttribute(
+              "aria-expanded",
+              shouldOpen ? "true" : "false"
+            );
+            state.menu.setAttribute(
+              "aria-label",
+              shouldOpen
+                ? "Close collections menu"
+                : "Open collections menu"
+            );
+          }
         };
 
-        const updateBreadcrumb = () => {
-          if (!state.crumb) {
+        const closeDrawer = () => toggleDrawer(false);
+
+        const syncNavigation = (root) => {
+          if (!state.navContainer) {
             return;
           }
-          state.crumb.textContent = getRouteDescriptor();
+
+          const sourceNav = findSidebar(root);
+          if (!sourceNav) {
+            state.navContainer.innerHTML =
+              '<p class="cms-shell-empty">Collections load once ready.</p>';
+            return;
+          }
+
+          sourceNav.dataset.cmsShellNavSource = "true";
+
+          const clone = sourceNav.cloneNode(true);
+          clone.removeAttribute("id");
+          Array.from(clone.querySelectorAll("[id]"))
+            .filter((el) => el.id)
+            .forEach((el) => el.removeAttribute("id"));
+
+          state.navContainer.innerHTML = "";
+          state.navContainer.appendChild(clone);
         };
 
-        const updateCreateButton = () => {
-          if (!state.createButton) {
+        const updateRouteLabel = () => {
+          if (!state.route) {
+            return;
+          }
+          state.route.textContent = describeRoute();
+        };
+
+        const updatePrimaryButton = () => {
+          if (!state.primary) {
             return;
           }
 
-          if (isAuthRoute()) {
-            state.createButton.style.display = "none";
+          if (isAuthRoute() || isEditorRoute()) {
+            state.primary.hidden = true;
             return;
           }
 
           const collection = getDefaultCollectionName();
           if (!collection) {
-            state.createButton.style.display = "none";
+            state.primary.hidden = true;
             return;
           }
 
           const label = formatCollectionLabel(collection);
           const target = `#/collections/${encodeURIComponent(collection)}/new`;
-          state.createButton.textContent = `New ${label}`;
-          state.createButton.href = target;
-          state.createButton.style.display = "inline-flex";
-          state.createButton.onclick = (event) => {
+          state.primary.textContent = `New ${label}`;
+          state.primary.href = target;
+          state.primary.hidden = false;
+          state.primary.onclick = (event) => {
             event.preventDefault();
             window.location.hash = target;
-            toggleNav(false);
+            closeDrawer();
           };
         };
 
-        const updateEditingState = (root) => {
-          const toolbar = findEditorToolbar(root);
-          const editing = Boolean(toolbar);
-          document.body.classList.toggle("cms-mobile-shell--editing", editing);
+        const updateEditingState = () => {
+          const editing = isEditorRoute();
+          document.body.classList.toggle("cms-shell-editing", editing);
         };
 
-        const transformTablesForMobile = (root) => {
-          const tables = root.querySelectorAll("table");
-          tables.forEach((table) => {
-            const headers = Array.from(
+        const adaptTables = (root) => {
+          root.querySelectorAll("table").forEach((table) => {
+            const headerCells = Array.from(
               table.querySelectorAll("thead th")
-            ).map((th) => (th.textContent || "").trim());
-            if (!headers.length) {
+            ).map((cell) => cell.textContent.trim());
+            if (headerCells.length === 0) {
               return;
             }
-            const rows = table.querySelectorAll("tbody tr");
-            rows.forEach((row) => {
-              const cells = row.querySelectorAll("td");
-              cells.forEach((cell, index) => {
-                const label = headers[index];
-                if (label) {
-                  cell.dataset.header = label;
-                } else {
-                  delete cell.dataset.header;
+            table.querySelectorAll("tbody tr").forEach((row) => {
+              row.querySelectorAll("td").forEach((cell, index) => {
+                if (headerCells[index]) {
+                  cell.dataset.header = headerCells[index];
                 }
               });
             });
+            table.dataset.cmsShellStacked = "true";
           });
         };
 
-        const observeRoot = () => {
+        const resetTables = (root) => {
+          root
+            .querySelectorAll("table[data-cms-shell-stacked='true']")
+            .forEach((table) => {
+              table.removeAttribute("data-cms-shell-stacked");
+              table
+                .querySelectorAll("td[data-header]")
+                .forEach((cell) => cell.removeAttribute("data-header"));
+            });
+        };
+
+        MOBILE_QUERY.addEventListener("change", scheduleApply);
+        window.addEventListener("hashchange", scheduleApply);
+
+        const watchRoot = () => {
           const root = document.getElementById("nc-root");
           if (!root) {
-            requestAnimationFrame(observeRoot);
+            setTimeout(watchRoot, 200);
             return;
           }
-          observer.disconnect();
+
+          if (observer) {
+            observer.disconnect();
+          }
+
+          observer = new MutationObserver(scheduleApply);
           observer.observe(root, { childList: true, subtree: true });
           scheduleApply();
         };
 
-        observeRoot();
-
-        if (typeof MOBILE_QUERY.addEventListener === "function") {
-          MOBILE_QUERY.addEventListener("change", scheduleApply);
-        } else if (typeof MOBILE_QUERY.addListener === "function") {
-          MOBILE_QUERY.addListener(scheduleApply);
-        }
-
-        window.addEventListener("hashchange", scheduleApply);
-        window.addEventListener("resize", scheduleApply, { passive: true });
-      }
-
-      function resetMobileTables(root) {
-        if (!root) return;
-        root
-          .querySelectorAll("td[data-header]")
-          .forEach((cell) => delete cell.dataset.header);
+        watchRoot();
+        scheduleApply();
       }
 
       function formatCollectionLabel(name) {
@@ -991,13 +808,12 @@
           .replace(/\b\w/g, (char) => char.toUpperCase());
       }
 
-      function getRouteDescriptor() {
+      function describeRoute() {
         const hash = window.location.hash || "";
         if (!hash || hash === "#/" || hash === "#") {
           return "Dashboard";
         }
-        const workflow = hash.match(/#\/workflow/);
-        if (workflow) {
+        if (/^#\/workflow/.test(hash)) {
           return "Workflow";
         }
         const newMatch = hash.match(/^#\/collections\/([^/]+)\/new/);
@@ -1028,25 +844,21 @@
         );
       }
 
-      function findSidebar(root) {
-        if (!root) return null;
-        const navCandidates = root.querySelectorAll("[role='navigation'], aside");
-        for (const el of navCandidates) {
-          const text = el.textContent || "";
-          if (text.toLowerCase().includes("collections")) {
-            return el;
-          }
-        }
-        return navCandidates[0] || null;
+      function isEditorRoute() {
+        const hash = window.location.hash || "";
+        return /#\/collections\/[^/]+\/(entries|new)/.test(hash);
       }
 
-      function findEditorToolbar(root) {
+      function findSidebar(root) {
         if (!root) return null;
-        return (
-          root.querySelector("[data-testid='editor-toolbar']") ||
-          root.querySelector("[class*='EditorToolbar']") ||
-          null
-        );
+        const candidates = root.querySelectorAll("[role='navigation'], aside");
+        for (const element of candidates) {
+          const text = (element.textContent || "").toLowerCase();
+          if (text.includes("collections")) {
+            return element;
+          }
+        }
+        return candidates[0] || null;
       }
 
       function getDefaultCollectionName() {
