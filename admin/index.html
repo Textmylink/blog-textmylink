@@ -590,10 +590,13 @@
         }
         enforceAuthentication.initialized = true;
 
+        let loginModalOpen = false;
+
         const requireLogin = () => {
-          if (!window.netlifyIdentity.currentUser()) {
-            window.netlifyIdentity.open("login");
+          if (window.netlifyIdentity.currentUser() || loginModalOpen) {
+            return;
           }
+          window.netlifyIdentity.open("login");
         };
 
         window.netlifyIdentity.on("init", (user) => {
@@ -602,6 +605,10 @@
           } else {
             requireLogin();
           }
+        });
+
+        window.netlifyIdentity.on("open", () => {
+          loginModalOpen = true;
         });
 
         window.netlifyIdentity.on("login", () => {
@@ -615,11 +622,13 @@
         });
 
         window.netlifyIdentity.on("close", () => {
+          loginModalOpen = false;
           if (!window.netlifyIdentity.currentUser()) {
             setTimeout(() => requireLogin(), 0);
           }
         });
 
+        requireLogin();
         window.netlifyIdentity.init();
       }
 
