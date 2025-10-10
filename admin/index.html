@@ -529,24 +529,19 @@
 
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.on("init", function (user) {
-          if (!user) {
-            window.netlifyIdentity.on("login", function () {
-              document.location.href = "/admin/";
-            });
-          }
-        });
-      }
-    </script>
-    <script>
       window.process = window.process || { env: { NODE_ENV: "production" } };
       window.CMS_MANUAL_INIT = true;
     </script>
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
     <script>
-      (function initCms() {
-        const start = () => {
+      let cmsHasStarted = false;
+
+      function startCms() {
+        if (cmsHasStarted) {
+          return;
+        }
+
+        const runInit = () => {
           if (window.CMS && typeof window.CMS.init === "function") {
             window.CMS.init();
             setupIdentityUI();
@@ -565,21 +560,84 @@
           return false;
         };
 
-        if (!start()) {
-          const message =
-            "Decap CMS failed to load. Check the console for details.";
-          console.error(message);
-          document.body.insertAdjacentHTML(
-            "beforeend",
-            `<p>${message}</p>`
-          );
-        }
-      })();
-
-      function setupIdentityUI() {
-        if (!window.netlifyIdentity) {
+        if (runInit()) {
+          cmsHasStarted = true;
           return;
         }
+
+        const message =
+          "Decap CMS failed to load. Check the console for details.";
+        console.error(message);
+        document.body.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
+      }
+
+      function enforceAuthentication() {
+        if (!window.netlifyIdentity) {
+          if (enforceAuthentication.retryCount > 20) {
+            console.error(
+              "Netlify Identity failed to load. The CMS cannot start."
+            );
+            return;
+          }
+          enforceAuthentication.retryCount =
+            (enforceAuthentication.retryCount || 0) + 1;
+          setTimeout(enforceAuthentication, 100);
+          return;
+        }
+
+        if (enforceAuthentication.initialized) {
+          return;
+        }
+        enforceAuthentication.initialized = true;
+
+        const requireLogin = () => {
+          if (!window.netlifyIdentity.currentUser()) {
+            window.netlifyIdentity.open("login");
+          }
+        };
+
+        window.netlifyIdentity.on("init", (user) => {
+          if (user) {
+            startCms();
+          } else {
+            requireLogin();
+          }
+        });
+
+        window.netlifyIdentity.on("login", () => {
+          startCms();
+          window.netlifyIdentity.close();
+        });
+
+        window.netlifyIdentity.on("logout", () => {
+          cmsHasStarted = false;
+          document.location.href = "/admin/";
+        });
+
+        window.netlifyIdentity.on("close", () => {
+          if (!window.netlifyIdentity.currentUser()) {
+            setTimeout(() => requireLogin(), 0);
+          }
+        });
+
+        window.netlifyIdentity.init();
+      }
+
+      function setupIdentityUI() {
+        if (setupIdentityUI.initialized) {
+          return;
+        }
+
+        if (!window.netlifyIdentity) {
+          if (setupIdentityUI.retryCount > 20) {
+            return;
+          }
+          setupIdentityUI.retryCount = (setupIdentityUI.retryCount || 0) + 1;
+          setTimeout(setupIdentityUI, 100);
+          return;
+        }
+
+        setupIdentityUI.initialized = true;
 
         const simplifyModal = () => {
           const modal = document.querySelector(".netlify-identity-modal");
@@ -617,6 +675,9 @@
           }
         });
       }
+
+      setupIdentityUI();
+      enforceAuthentication();
 
       function setupMobileEnhancements() {
         const MOBILE_QUERY = window.matchMedia("(max-width: 1024px)");
