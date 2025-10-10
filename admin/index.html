@@ -17,6 +17,9 @@
       body.cms-nav-open {
         overflow: hidden;
       }
+      body.cms-collections-open {
+        overflow: hidden;
+      }
       #cms-mobile-header {
         display: flex;
         align-items: center;
@@ -40,7 +43,8 @@
         font-weight: 600;
         font-size: 1.05rem;
       }
-      #cms-nav-toggle {
+      #cms-nav-toggle,
+      #cms-collections-toggle {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
@@ -59,7 +63,8 @@
         background: currentColor;
         border-radius: 1rem;
       }
-      body.cms-nav-open #cms-nav-toggle {
+      body.cms-nav-open #cms-nav-toggle,
+      body.cms-collections-open #cms-collections-toggle {
         color: #38bdf8;
       }
       #cms-logout-button {
@@ -96,7 +101,8 @@
         box-sizing: border-box;
         width: 100%;
       }
-      body.cms-nav-open #cms-mobile-nav-container {
+      body.cms-nav-open #cms-mobile-nav-container,
+      body.cms-collections-open #cms-mobile-nav-container {
         display: block;
       }
       #cms-mobile-nav-container .cms-mobile-nav,
@@ -289,6 +295,15 @@
               Menu
             </button>
             <span class="cms-brand" aria-label="Admin home">TextMyLink Admin</span>
+            <button
+              type="button"
+              id="cms-collections-toggle"
+              class="cms-link-button"
+              aria-expanded="false"
+              aria-controls="cms-mobile-nav"
+            >
+              Collections
+            </button>
             <button type="button" id="cms-logout-button" class="cms-link-button">Log out</button>
           `;
           document.body.insertBefore(header, root);
@@ -296,10 +311,23 @@
           const toggle = header.querySelector("#cms-nav-toggle");
           toggle.addEventListener("click", () => {
             const open = !document.body.classList.contains("cms-nav-open");
+            document.body.classList.remove("cms-collections-open");
             if (open) {
               document.body.classList.add("cms-nav-open");
             } else {
               document.body.classList.remove("cms-nav-open");
+            }
+            updateNavState();
+          });
+
+          const collectionsToggle = header.querySelector("#cms-collections-toggle");
+          collectionsToggle.addEventListener("click", () => {
+            const open = !document.body.classList.contains("cms-collections-open");
+            document.body.classList.remove("cms-nav-open");
+            if (open) {
+              document.body.classList.add("cms-collections-open");
+            } else {
+              document.body.classList.remove("cms-collections-open");
             }
             updateNavState();
           });
@@ -378,13 +406,18 @@
 
       function updateNavState() {
         const open = document.body.classList.contains("cms-nav-open");
+        const collectionsOpen = document.body.classList.contains("cms-collections-open");
         const button = document.getElementById("cms-nav-toggle");
         if (button) {
           button.setAttribute("aria-expanded", open ? "true" : "false");
         }
+        const collectionsButton = document.getElementById("cms-collections-toggle");
+        if (collectionsButton) {
+          collectionsButton.setAttribute("aria-expanded", collectionsOpen ? "true" : "false");
+        }
         const navContainer = document.getElementById("cms-mobile-nav-container");
         if (navContainer) {
-          if (open) {
+          if (open || collectionsOpen) {
             navContainer.hidden = false;
             navContainer.setAttribute("aria-hidden", "false");
           } else {
@@ -394,17 +427,18 @@
 
           const nav = navContainer.querySelector("#cms-mobile-nav");
           if (nav) {
-            nav.setAttribute("aria-hidden", open ? "false" : "true");
+            nav.setAttribute("aria-hidden", open || collectionsOpen ? "false" : "true");
           }
         }
       }
 
       function closeNav() {
-        if (!document.body.classList.contains("cms-nav-open")) {
+        if (!document.body.classList.contains("cms-nav-open") && !document.body.classList.contains("cms-collections-open")) {
           updateNavState();
           return;
         }
         document.body.classList.remove("cms-nav-open");
+        document.body.classList.remove("cms-collections-open");
         updateNavState();
       }
     </script>
