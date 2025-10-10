@@ -172,14 +172,16 @@
         bottom: 0;
         width: min(85vw, 320px);
         background: var(--shell-surface);
-        padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem 1.5rem;
+        padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem
+          calc(1.25rem + env(safe-area-inset-bottom, 0px));
         box-shadow: 24px 0 48px rgba(15, 23, 42, 0.18);
         transform: translateX(-100%);
         transition: transform 0.25s ease;
         z-index: 950;
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
+        overflow-y: auto;
       }
 
       body.cms-shell-drawer-open #cms-shell-drawer {
@@ -188,6 +190,22 @@
 
       #cms-shell-drawer[aria-hidden="true"] {
         pointer-events: none;
+      }
+
+      .cms-shell-drawer__sections {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .cms-shell-drawer__section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .cms-shell-drawer__section[hidden] {
+        display: none !important;
       }
 
       .cms-shell-drawer__top {
@@ -232,15 +250,28 @@
         color: var(--shell-text);
       }
 
-      .cms-shell-drawer__content {
-        display: flex;
-        flex-direction: column;
-        gap: 0.6rem;
-        overflow-y: auto;
+      .cms-shell-drawer__heading {
+        margin: 0;
+        font-size: 0.75rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--shell-text-muted);
+        font-weight: 600;
       }
 
-      .cms-shell-drawer__content nav,
-      .cms-shell-drawer__content ul {
+      .cms-shell-drawer__stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .cms-shell-drawer__stack > * {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      .cms-shell-drawer__stack[data-cms-shell-nav] nav,
+      .cms-shell-drawer__stack[data-cms-shell-nav] ul {
         margin: 0;
         padding: 0;
         list-style: none;
@@ -249,8 +280,8 @@
         gap: 0.45rem;
       }
 
-      .cms-shell-drawer__content a,
-      .cms-shell-drawer__content button {
+      .cms-shell-drawer__stack[data-cms-shell-nav] a,
+      .cms-shell-drawer__stack[data-cms-shell-nav] button {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -263,9 +294,49 @@
         font-size: 0.95rem;
       }
 
-      .cms-shell-drawer__content a:hover,
-      .cms-shell-drawer__content button:hover {
+      .cms-shell-drawer__stack[data-cms-shell-nav] a:hover,
+      .cms-shell-drawer__stack[data-cms-shell-nav] button:hover {
         background: #e0ecff;
+      }
+
+      .cms-shell-drawer__stack[data-cms-shell-tools] > *,
+      .cms-shell-drawer__stack[data-cms-shell-workflow] > * {
+        background: #f8fafc;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        padding: 0.75rem;
+      }
+
+      .cms-shell-drawer__stack[data-cms-shell-tools] button,
+      .cms-shell-drawer__stack[data-cms-shell-tools] a,
+      .cms-shell-drawer__stack[data-cms-shell-workflow] button,
+      .cms-shell-drawer__stack[data-cms-shell-workflow] a {
+        width: 100% !important;
+      }
+
+      .cms-shell-drawer__panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+
+      .cms-shell-drawer__panel > * {
+        width: 100% !important;
+      }
+
+      .cms-shell-drawer__panel input,
+      .cms-shell-drawer__panel select,
+      .cms-shell-drawer__panel textarea {
+        width: 100% !important;
+        font-size: 0.95rem !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--shell-border) !important;
+        padding: 0.65rem 0.75rem !important;
+      }
+
+      .cms-shell-drawer__panel button,
+      .cms-shell-drawer__panel a {
+        width: 100% !important;
       }
 
       .cms-shell-empty {
@@ -281,21 +352,14 @@
       body.cms-shell-mobile #nc-root header[role="banner"],
       body.cms-shell-mobile #nc-root header[role="toolbar"],
       body.cms-shell-mobile #nc-root nav[role="navigation"],
-      body.cms-shell-mobile #nc-root [class*="Header"],
-      body.cms-shell-mobile #nc-root [class*="Toolbar"],
-      body.cms-shell-mobile #nc-root [class*="Controls"] {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 0.75rem !important;
-      }
-
-      body.cms-shell-mobile #nc-root header[role="banner"] > *,
-      body.cms-shell-mobile #nc-root header[role="toolbar"] > *,
-      body.cms-shell-mobile #nc-root nav[role="navigation"] > *,
-      body.cms-shell-mobile #nc-root [class*="Toolbar"] > * {
-        width: 100% !important;
-        max-width: 100% !important;
+      body.cms-shell-mobile #nc-root aside,
+      body.cms-shell-mobile #nc-root [class*="AppHeader"],
+      body.cms-shell-mobile #nc-root [class*="CollectionTop"],
+      body.cms-shell-mobile #nc-root [class*="CollectionControls"],
+      body.cms-shell-mobile #nc-root [class*="Workflow"],
+      body.cms-shell-mobile #nc-root [class*="Sidebar"],
+      body.cms-shell-mobile #nc-root [class*="Toolbar"] {
+        display: none !important;
       }
 
       body.cms-shell-mobile #nc-root button,
@@ -455,8 +519,35 @@
           Close
         </button>
       </div>
-      <div class="cms-shell-drawer__content" data-cms-shell-nav>
-        <p class="cms-shell-empty">Collections load once ready.</p>
+      <div class="cms-shell-drawer__sections">
+        <section
+          class="cms-shell-drawer__section"
+          data-cms-shell-section="nav"
+        >
+          <h2 class="cms-shell-drawer__heading">Browse</h2>
+          <div class="cms-shell-drawer__stack" data-cms-shell-nav>
+            <p class="cms-shell-empty">Collections load once ready.</p>
+          </div>
+        </section>
+        <section
+          class="cms-shell-drawer__section"
+          data-cms-shell-section="tools"
+          hidden
+        >
+          <h2 class="cms-shell-drawer__heading">Tools</h2>
+          <div class="cms-shell-drawer__stack" data-cms-shell-tools></div>
+        </section>
+        <section
+          class="cms-shell-drawer__section"
+          data-cms-shell-section="workflow"
+          hidden
+        >
+          <h2 class="cms-shell-drawer__heading">Workflow</h2>
+          <div
+            class="cms-shell-drawer__stack"
+            data-cms-shell-workflow
+          ></div>
+        </section>
       </div>
     </aside>
     <div id="nc-root"></div>
@@ -630,11 +721,35 @@
           route: document.getElementById("cms-shell-route"),
           primary: document.getElementById("cms-shell-primary"),
           navContainer: document.querySelector("[data-cms-shell-nav]"),
+          toolsContainer: document.querySelector("[data-cms-shell-tools]"),
+          workflowContainer: document.querySelector(
+            "[data-cms-shell-workflow]"
+          ),
+          sections: {
+            tools: document.querySelector(
+              "[data-cms-shell-section='tools']"
+            ),
+            workflow: document.querySelector(
+              "[data-cms-shell-section='workflow']"
+            ),
+          },
         };
 
         const MOBILE_QUERY = window.matchMedia("(max-width: 960px)");
         let observer = null;
         let scheduled = false;
+        const panelMirrors = new Map();
+        const PANEL_CONFIGS = [
+          { selector: "[class*='AppHeader']", slot: "tools" },
+          { selector: "[class*='CollectionTop']", slot: "tools" },
+          { selector: "[class*='CollectionControls']", slot: "tools" },
+          { selector: "[class*='Workflow']", slot: "workflow" },
+        ];
+        const SLOT_FALLBACKS = {
+          tools: "Tools appear once a collection is selected.",
+          workflow: "Workflow appears after entries are created.",
+        };
+
 
         const scheduleApply = () => {
           if (scheduled) return;
@@ -671,6 +786,7 @@
             closeDrawer();
             resetTables(root);
             document.body.classList.remove("cms-shell-editing");
+            clearMirrors();
             return;
           }
 
@@ -681,6 +797,7 @@
           }
 
           bindMenu();
+          mirrorPanels(root);
           syncNavigation(root);
           updateRouteLabel();
           updatePrimaryButton();
@@ -748,6 +865,212 @@
         };
 
         const closeDrawer = () => toggleDrawer(false);
+
+        const mirrorInteractive = (cloneEl, originalEl, cleanup) => {
+          if (!cloneEl || !originalEl) {
+            if (cloneEl) {
+              cloneEl.setAttribute("disabled", "true");
+            }
+            return;
+          }
+
+          const tagName = (cloneEl.tagName || "").toLowerCase();
+          const type = (cloneEl.type || "").toLowerCase();
+
+          if (tagName === "select") {
+            cloneEl.value = originalEl.value;
+            const syncFromOriginal = () => {
+              cloneEl.value = originalEl.value;
+            };
+            const syncToOriginal = () => {
+              originalEl.value = cloneEl.value;
+              originalEl.dispatchEvent(
+                new Event("change", { bubbles: true })
+              );
+            };
+            cloneEl.addEventListener("change", syncToOriginal);
+            originalEl.addEventListener("change", syncFromOriginal);
+            cleanup.push(() =>
+              originalEl.removeEventListener("change", syncFromOriginal)
+            );
+          } else if (tagName === "input" || tagName === "textarea") {
+            if (type === "checkbox" || type === "radio") {
+              cloneEl.checked = originalEl.checked;
+              const syncFromOriginal = () => {
+                cloneEl.checked = originalEl.checked;
+              };
+              const syncToOriginal = () => {
+                originalEl.checked = cloneEl.checked;
+                originalEl.dispatchEvent(
+                  new Event("change", { bubbles: true })
+                );
+              };
+              cloneEl.addEventListener("change", syncToOriginal);
+              originalEl.addEventListener("change", syncFromOriginal);
+              cleanup.push(() =>
+                originalEl.removeEventListener("change", syncFromOriginal)
+              );
+            } else {
+              cloneEl.value = originalEl.value;
+              const syncFromOriginal = () => {
+                cloneEl.value = originalEl.value;
+              };
+              const syncToOriginal = () => {
+                originalEl.value = cloneEl.value;
+                const eventType = type === "search" ? "search" : "input";
+                originalEl.dispatchEvent(
+                  new Event(eventType, { bubbles: true })
+                );
+              };
+              cloneEl.addEventListener("input", syncToOriginal);
+              originalEl.addEventListener("input", syncFromOriginal);
+              cleanup.push(() =>
+                originalEl.removeEventListener("input", syncFromOriginal)
+              );
+            }
+          } else {
+            cloneEl.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              originalEl.dispatchEvent(
+                new MouseEvent("click", { bubbles: true, cancelable: true })
+              );
+            });
+          }
+        };
+
+        const ensureSlotFallback = (slot, text) => {
+          if (!slot) {
+            return;
+          }
+          const hasPanel = slot.querySelector(
+            ".cms-shell-drawer__panel"
+          );
+          let message = slot.querySelector(
+            "[data-cms-shell-empty-message]"
+          );
+          if (!hasPanel && text) {
+            if (!message) {
+              message = document.createElement("p");
+              message.className = "cms-shell-empty";
+              message.dataset.cmsShellEmptyMessage = "true";
+              message.textContent = text;
+              slot.appendChild(message);
+            } else {
+              message.textContent = text;
+            }
+          } else if (message && hasPanel) {
+            message.remove();
+          }
+        };
+
+        const updateDrawerSections = () => {
+          if (state.sections && state.sections.tools) {
+            const hasTools = !!state.toolsContainer?.querySelector(
+              ".cms-shell-drawer__panel"
+            );
+            state.sections.tools.hidden = !hasTools;
+          }
+          if (state.sections && state.sections.workflow) {
+            const hasWorkflow = !!state.workflowContainer?.querySelector(
+              ".cms-shell-drawer__panel"
+            );
+            state.sections.workflow.hidden = !hasWorkflow;
+          }
+        };
+
+        const clearMirrors = () => {
+          panelMirrors.forEach((record) => {
+            record.cleanup.forEach((fn) => fn());
+            if (record.wrapper && record.wrapper.parentNode) {
+              record.wrapper.parentNode.removeChild(record.wrapper);
+            }
+          });
+          panelMirrors.clear();
+          if (state.toolsContainer) {
+            state.toolsContainer.innerHTML = "";
+          }
+          if (state.workflowContainer) {
+            state.workflowContainer.innerHTML = "";
+          }
+          ensureSlotFallback(state.toolsContainer, SLOT_FALLBACKS.tools);
+          ensureSlotFallback(
+            state.workflowContainer,
+            SLOT_FALLBACKS.workflow
+          );
+          updateDrawerSections();
+        };
+
+        const mirrorPanel = (selector, original, slot) => {
+          if (!slot) {
+            return;
+          }
+
+          let record = panelMirrors.get(selector);
+
+          if (!original) {
+            if (record) {
+              record.cleanup.forEach((fn) => fn());
+              if (record.wrapper && record.wrapper.parentNode) {
+                record.wrapper.parentNode.removeChild(record.wrapper);
+              }
+              panelMirrors.delete(selector);
+            }
+            return;
+          }
+
+          if (!record) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "cms-shell-drawer__panel";
+            slot.appendChild(wrapper);
+            record = { cleanup: [], wrapper };
+            panelMirrors.set(selector, record);
+          }
+
+          const wrapper = record.wrapper;
+          record.cleanup.forEach((fn) => fn());
+          record.cleanup = [];
+
+          const clone = original.cloneNode(true);
+          clone.removeAttribute("id");
+          clone
+            .querySelectorAll("[id]")
+            .forEach((node) => node.removeAttribute("id"));
+
+          wrapper.innerHTML = "";
+          wrapper.appendChild(clone);
+
+          const originalInteractives = Array.from(
+            original.querySelectorAll("a, button, input, select, textarea")
+          );
+          const cloneInteractives = Array.from(
+            clone.querySelectorAll("a, button, input, select, textarea")
+          );
+
+          cloneInteractives.forEach((element, index) => {
+            mirrorInteractive(element, originalInteractives[index], record.cleanup);
+          });
+        };
+
+        const mirrorPanels = (root) => {
+          PANEL_CONFIGS.forEach((config) => {
+            const slot =
+              config.slot === "tools"
+                ? state.toolsContainer
+                : config.slot === "workflow"
+                ? state.workflowContainer
+                : null;
+            const original = root.querySelector(config.selector);
+            mirrorPanel(config.selector, original, slot);
+          });
+
+          ensureSlotFallback(state.toolsContainer, SLOT_FALLBACKS.tools);
+          ensureSlotFallback(
+            state.workflowContainer,
+            SLOT_FALLBACKS.workflow
+          );
+          updateDrawerSections();
+        };
 
         const syncNavigation = (root) => {
           if (!state.navContainer) {
@@ -865,6 +1188,12 @@
           observer.observe(root, { childList: true, subtree: true });
           scheduleApply();
         };
+
+        ensureSlotFallback(state.toolsContainer, SLOT_FALLBACKS.tools);
+        ensureSlotFallback(
+          state.workflowContainer,
+          SLOT_FALLBACKS.workflow
+        );
 
         watchRoot();
         scheduleApply();
