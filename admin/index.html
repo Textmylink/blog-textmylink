@@ -88,18 +88,28 @@
       #nc-root.cms-mobile-root header[role="banner"] {
         display: none !important;
       }
-      #nc-root.cms-mobile-root .cms-mobile-nav,
-      #nc-root.cms-mobile-root [data-testid="collection-sidebar"],
-      #nc-root.cms-mobile-root nav[aria-label="Collections"],
-      #nc-root.cms-mobile-root aside[aria-label="Collections"] {
-        width: 100% !important;
-        max-width: none !important;
-        border: none !important;
+      #cms-mobile-nav-container {
+        display: none;
         border-bottom: 1px solid #cbd5f5;
         background: #e2e8f0;
         padding: 0.5rem 1rem;
         box-sizing: border-box;
-        display: none;
+        width: 100%;
+      }
+      body.cms-nav-open #cms-mobile-nav-container {
+        display: block;
+      }
+      #cms-mobile-nav-container .cms-mobile-nav,
+      #cms-mobile-nav-container [data-testid="collection-sidebar"],
+      #cms-mobile-nav-container nav[aria-label="Collections"],
+      #cms-mobile-nav-container aside[aria-label="Collections"] {
+        width: 100% !important;
+        max-width: none !important;
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        box-sizing: border-box;
+        display: block;
         position: static !important;
         inset: auto !important;
         height: auto !important;
@@ -107,18 +117,12 @@
         z-index: auto !important;
         transform: none !important;
       }
-      body.cms-nav-open #nc-root.cms-mobile-root .cms-mobile-nav,
-      body.cms-nav-open #nc-root.cms-mobile-root [data-testid="collection-sidebar"],
-      body.cms-nav-open #nc-root.cms-mobile-root nav[aria-label="Collections"],
-      body.cms-nav-open #nc-root.cms-mobile-root aside[aria-label="Collections"] {
-        display: block;
-      }
-      .cms-mobile-nav ul {
+      #cms-mobile-nav-container .cms-mobile-nav ul {
         list-style: none;
         margin: 0;
         padding: 0;
       }
-      .cms-mobile-nav a {
+      #cms-mobile-nav-container .cms-mobile-nav a {
         display: block;
         padding: 0.55rem 0.65rem;
         border-radius: 0.5rem;
@@ -126,7 +130,7 @@
         text-decoration: none;
         font-weight: 500;
       }
-      .cms-mobile-nav a:hover {
+      #cms-mobile-nav-container .cms-mobile-nav a:hover {
         background: #cbd5f5;
       }
       #nc-root.cms-mobile-root .cms-mobile-pane,
@@ -308,6 +312,7 @@
           });
         }
 
+        ensureNavMount(root);
         updateNavState();
       }
 
@@ -324,8 +329,9 @@
         nav.id = "cms-mobile-nav";
         nav.classList.add("cms-mobile-nav");
 
+        const mount = ensureNavMount(root);
         if (!nav.dataset.cmsMobileMoved) {
-          root.insertBefore(nav, root.firstChild);
+          mount.appendChild(nav);
           nav.dataset.cmsMobileMoved = "true";
         }
 
@@ -339,6 +345,18 @@
         }
 
         updateNavState();
+      }
+
+      function ensureNavMount(root) {
+        let mount = document.getElementById("cms-mobile-nav-container");
+        if (!mount) {
+          mount = document.createElement("div");
+          mount.id = "cms-mobile-nav-container";
+          mount.setAttribute("aria-hidden", "true");
+          mount.hidden = true;
+          document.body.insertBefore(mount, root);
+        }
+        return mount;
       }
 
       function simplifyContent(root) {
@@ -364,9 +382,20 @@
         if (button) {
           button.setAttribute("aria-expanded", open ? "true" : "false");
         }
-        const nav = document.getElementById("cms-mobile-nav");
-        if (nav) {
-          nav.setAttribute("aria-hidden", open ? "false" : "true");
+        const navContainer = document.getElementById("cms-mobile-nav-container");
+        if (navContainer) {
+          if (open) {
+            navContainer.hidden = false;
+            navContainer.setAttribute("aria-hidden", "false");
+          } else {
+            navContainer.hidden = true;
+            navContainer.setAttribute("aria-hidden", "true");
+          }
+
+          const nav = navContainer.querySelector("#cms-mobile-nav");
+          if (nav) {
+            nav.setAttribute("aria-hidden", open ? "false" : "true");
+          }
         }
       }
 
