@@ -1,11 +1,532 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>TextMyLink CMS</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TextMyLink Admin</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont,
+          "Helvetica Neue", Arial, sans-serif;
+        --cms-shell-bg: #f8fafc;
+        --cms-shell-surface: #ffffff;
+        --cms-shell-border: #e2e8f0;
+        --cms-shell-border-strong: #cbd5f5;
+        --cms-shell-text: #0f172a;
+        --cms-shell-text-soft: #475569;
+        --cms-shell-muted: #94a3b8;
+        --cms-shell-primary: #2563eb;
+        --cms-shell-primary-strong: #1d4ed8;
+        --cms-shell-primary-soft: rgba(37, 99, 235, 0.12);
+        --cms-shell-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+        --cms-shell-radius: 18px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: inherit;
+        color: var(--cms-shell-text);
+        background: var(--cms-shell-bg);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      #nc-root {
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: calc(4.6rem + env(safe-area-inset-top, 0px)) 1.1rem
+          calc(5rem + env(safe-area-inset-bottom, 0px));
+      }
+
+      #nc-root > * {
+        max-width: 100%;
+      }
+
+      .cms-mobile-toolbar,
+      #cms-mobile-toolbar,
+      #cms-mobile-overlay,
+      #cms-mobile-collections-drawer {
+        display: none;
+      }
+
+      body.cms-mobile-shell {
+        background: var(--cms-shell-bg);
+      }
+
+      body.cms-mobile-shell #nc-root {
+        padding: calc(4.75rem + env(safe-area-inset-top, 0px)) 1.05rem
+          calc(5rem + env(safe-area-inset-bottom, 0px));
+        gap: 1.25rem;
+      }
+
+      body.cms-mobile-shell--editing #nc-root {
+        padding-bottom: calc(7.25rem + env(safe-area-inset-bottom, 0px));
+      }
+
+      body.cms-mobile-shell #cms-mobile-toolbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1005;
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 1rem 0.75rem;
+        background: rgba(248, 250, 252, 0.94);
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.32);
+      }
+
+      body.cms-mobile-shell #cms-mobile-overlay,
+      body.cms-mobile-shell #cms-mobile-collections-drawer {
+        display: block;
+      }
+
+      body.cms-mobile-shell #cms-mobile-toolbar button,
+      body.cms-mobile-shell #cms-mobile-toolbar a {
+        font-family: inherit;
+      }
+
+      #cms-mobile-nav-toggle {
+        appearance: none;
+        border: none;
+        border-radius: 14px;
+        background: #1f2937;
+        color: #fff;
+        padding: 0.65rem 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+
+      #cms-mobile-nav-toggle:active {
+        transform: scale(0.97);
+      }
+
+      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon,
+      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon::before,
+      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon::after {
+        display: block;
+        width: 18px;
+        height: 2px;
+        background: currentColor;
+        border-radius: 999px;
+        content: "";
+      }
+
+      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon {
+        position: relative;
+      }
+
+      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon::before {
+        position: absolute;
+        top: -6px;
+      }
+
+      #cms-mobile-nav-toggle .cms-mobile-nav-toggle__icon::after {
+        position: absolute;
+        bottom: -6px;
+      }
+
+      #cms-mobile-toolbar .cms-mobile-nav-toggle__text {
+        font-size: 0.85rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      body.cms-mobile-shell--nav-open #cms-mobile-nav-toggle {
+        background: #111827;
+      }
+
+      #cms-mobile-brand {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        min-width: 0;
+      }
+
+      #cms-mobile-brand .cms-mobile-brand__eyebrow {
+        font-size: 0.72rem;
+        letter-spacing: 0.26em;
+        text-transform: uppercase;
+        color: var(--cms-shell-muted);
+        font-weight: 700;
+      }
+
+      #cms-mobile-brand .cms-mobile-brand__crumb {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--cms-shell-text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      #cms-mobile-toolbar .cms-mobile-toolbar__actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+      }
+
+      #cms-mobile-create-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.65rem 1.15rem;
+        border-radius: 999px;
+        border: none;
+        background: var(--cms-shell-primary);
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.92rem;
+        text-decoration: none;
+        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.25);
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+
+      #cms-mobile-create-primary:active {
+        transform: scale(0.98);
+      }
+
+      body.cms-mobile-shell--editing #cms-mobile-create-primary {
+        display: none !important;
+      }
+
+      #cms-mobile-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.4);
+        z-index: 1003;
+      }
+
+      #cms-mobile-collections-drawer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(82vw, 340px);
+        max-width: calc(100vw - 32px);
+        background: var(--cms-shell-surface);
+        padding: calc(1.3rem + env(safe-area-inset-top, 0px)) 1.1rem 1.4rem;
+        box-shadow: 20px 0 48px rgba(15, 23, 42, 0.32);
+        transform: translateX(-110%);
+        transition: transform 0.25s ease;
+        z-index: 1004;
+        overflow-y: auto;
+      }
+
+      #cms-mobile-collections-drawer h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--cms-shell-text);
+      }
+
+      #cms-mobile-collections-drawer p {
+        margin: 0.25rem 0 1.25rem;
+        font-size: 0.85rem;
+        color: var(--cms-shell-muted);
+      }
+
+      #cms-mobile-collections-drawer nav,
+      #cms-mobile-collections-drawer [data-cms-mobile-nav] {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      #cms-mobile-collections-drawer a,
+      #cms-mobile-collections-drawer button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.35rem;
+        padding: 0.75rem 0.9rem;
+        border-radius: 0.85rem;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        background: rgba(148, 163, 184, 0.08);
+        color: var(--cms-shell-text);
+        border: 1px solid transparent;
+      }
+
+      #cms-mobile-collections-drawer a:hover,
+      #cms-mobile-collections-drawer button:hover {
+        background: rgba(148, 163, 184, 0.16);
+      }
+
+      body.cms-mobile-shell--nav-open #cms-mobile-overlay {
+        display: block;
+      }
+
+      body.cms-mobile-shell--nav-open #cms-mobile-collections-drawer {
+        transform: translateX(0);
+      }
+
+      body.cms-mobile-shell [data-cms-mobile-nav-source] {
+        display: none !important;
+      }
+
+      body.cms-mobile-shell #nc-root [data-testid="app-container"],
+      body.cms-mobile-shell #nc-root [data-testid="workspace"],
+      body.cms-mobile-shell #nc-root [class*="Layout"],
+      body.cms-mobile-shell #nc-root [class*="Container"],
+      body.cms-mobile-shell #nc-root [class*="Pane"],
+      body.cms-mobile-shell #nc-root [role="main"],
+      body.cms-mobile-shell #nc-root main {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      body.cms-mobile-shell #nc-root header[role="banner"],
+      body.cms-mobile-shell #nc-root header[role="toolbar"],
+      body.cms-mobile-shell #nc-root [class*="CollectionHeader"],
+      body.cms-mobile-shell #nc-root [class*="EditorHeader"],
+      body.cms-mobile-shell #nc-root nav[role="navigation"],
+      body.cms-mobile-shell #nc-root [class*="HeaderToolbar"],
+      body.cms-mobile-shell #nc-root [class*="CollectionControls"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        align-items: stretch !important;
+      }
+
+      body.cms-mobile-shell #nc-root header[role="banner"] > *,
+      body.cms-mobile-shell #nc-root header[role="toolbar"] > *,
+      body.cms-mobile-shell #nc-root [class*="CollectionHeader"] > *,
+      body.cms-mobile-shell #nc-root [class*="EditorHeader"] > * {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      body.cms-mobile-shell #nc-root nav[role="navigation"] a,
+      body.cms-mobile-shell #nc-root nav[role="navigation"] button,
+      body.cms-mobile-shell #nc-root [class*="HeaderToolbar"] > *,
+      body.cms-mobile-shell #nc-root [class*="CollectionControls"] > * {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+      }
+
+      body.cms-mobile-shell #nc-root [class*="Card"],
+      body.cms-mobile-shell #nc-root .nc-entryListingCard,
+      body.cms-mobile-shell #nc-root [class*="ListCard"],
+      body.cms-mobile-shell #nc-root [class*="WorkflowCard"] {
+        border-radius: var(--cms-shell-radius) !important;
+        box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14) !important;
+        border: 1px solid rgba(148, 163, 184, 0.14) !important;
+        background: var(--cms-shell-surface) !important;
+      }
+
+      body.cms-mobile-shell #nc-root [class*="ControlPane"],
+      body.cms-mobile-shell #nc-root [class*="EditorControl"],
+      body.cms-mobile-shell #nc-root [class*="WidgetWrapper"],
+      body.cms-mobile-shell #nc-root .nc-controlPane-control {
+        gap: 0.6rem !important;
+      }
+
+      body.cms-mobile-shell #nc-root label,
+      body.cms-mobile-shell #nc-root .nc-controlPane-label,
+      body.cms-mobile-shell #nc-root [class*="Label"] {
+        font-weight: 600 !important;
+        font-size: 0.92rem !important;
+        color: var(--cms-shell-text) !important;
+      }
+
+      body.cms-mobile-shell #nc-root input,
+      body.cms-mobile-shell #nc-root textarea,
+      body.cms-mobile-shell #nc-root select,
+      body.cms-mobile-shell #nc-root .nc-controlPane-control input,
+      body.cms-mobile-shell #nc-root .nc-controlPane-control textarea,
+      body.cms-mobile-shell #nc-root .nc-controlPane-control select {
+        font-size: 1rem !important;
+        padding: 0.75rem 0.9rem !important;
+        border-radius: 0.9rem !important;
+        border: 1px solid var(--cms-shell-border) !important;
+        background: var(--cms-shell-surface) !important;
+        box-shadow: none !important;
+      }
+
+      body.cms-mobile-shell #nc-root textarea {
+        min-height: 160px !important;
+      }
+
+      body.cms-mobile-shell #nc-root [class*="MediaLibrary"],
+      body.cms-mobile-shell #nc-root [role="dialog"],
+      body.cms-mobile-shell #nc-root [data-testid*="modal"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        margin: 0 !important;
+      }
+
+      body.cms-mobile-shell #nc-root [role="dialog"] .nc-media-library-content,
+      body.cms-mobile-shell #nc-root [role="dialog"] [class*="MediaLibraryContent"] {
+        max-width: 100% !important;
+      }
+
+      body.cms-mobile-shell #nc-root table {
+        width: 100%;
+        display: block;
+        border-collapse: collapse;
+        background: transparent;
+      }
+
+      body.cms-mobile-shell #nc-root thead {
+        display: none !important;
+      }
+
+      body.cms-mobile-shell #nc-root tbody {
+        display: grid;
+        gap: 0.85rem;
+        padding: 0;
+      }
+
+      body.cms-mobile-shell #nc-root tbody tr {
+        display: grid;
+        gap: 0.4rem;
+        padding: 0.9rem 1rem;
+        border-radius: 1rem;
+        background: var(--cms-shell-surface);
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+      }
+
+      body.cms-mobile-shell #nc-root td {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        font-size: 0.95rem;
+      }
+
+      body.cms-mobile-shell #nc-root td::before {
+        content: attr(data-header);
+        font-size: 0.68rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--cms-shell-muted);
+        font-weight: 700;
+      }
+
+      body.cms-mobile-shell #nc-root td a {
+        font-weight: 600;
+        color: var(--cms-shell-primary);
+      }
+
+      body.cms-mobile-shell #nc-root [class*="Toolbar"] button,
+      body.cms-mobile-shell #nc-root [class*="Toolbar"] a,
+      body.cms-mobile-shell #nc-root button,
+      body.cms-mobile-shell #nc-root .nc-button,
+      body.cms-mobile-shell #nc-root .nc-entryListingCard button {
+        border-radius: 999px !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        padding: 0.65rem 0.9rem !important;
+      }
+
+      body.cms-mobile-shell #nc-root [class*="EditorToolbar"],
+      body.cms-mobile-shell #nc-root [data-testid="editor-toolbar"] {
+        position: fixed !important;
+        bottom: calc(env(safe-area-inset-bottom, 0px));
+        left: 0;
+        right: 0;
+        padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+        background: rgba(248, 250, 252, 0.96) !important;
+        border-top: 1px solid rgba(148, 163, 184, 0.28) !important;
+        box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.16) !important;
+        z-index: 1006 !important;
+      }
+
+      body.cms-mobile-shell #nc-root [class*="EditorToolbar"] > *,
+      body.cms-mobile-shell #nc-root [data-testid="editor-toolbar"] > * {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+      }
+
+      body.cms-mobile-shell #nc-root [class*="EditorToolbar"] button,
+      body.cms-mobile-shell #nc-root [data-testid="editor-toolbar"] button,
+      body.cms-mobile-shell #nc-root [class*="EditorToolbar"] a,
+      body.cms-mobile-shell #nc-root [data-testid="editor-toolbar"] a {
+        width: 100% !important;
+      }
+
+      body.cms-mobile-shell #nc-root [class*="Pane"] [class*="Preview"],
+      body.cms-mobile-shell #nc-root [class*="PreviewPane"],
+      body.cms-mobile-shell #nc-root [data-testid="preview-pane"] {
+        order: 1;
+      }
+
+      body.cms-mobile-shell #nc-root [class*="EditorPane"],
+      body.cms-mobile-shell #nc-root [data-testid="editor-pane"] {
+        order: 0;
+      }
+
+      body.cms-mobile-shell #nc-root [class*="AppHeader"] {
+        margin-top: 0 !important;
+      }
+
+      body.cms-mobile-shell .netlify-identity-modal {
+        width: 100% !important;
+        max-width: 420px !important;
+        margin: 3.5rem auto !important;
+        border-radius: 1.5rem !important;
+      }
+
+      body.cms-mobile-shell .netlify-identity-modal .netlify-identity-form {
+        padding: 1.5rem !important;
+      }
+
+      @media (min-width: 900px) {
+        body.cms-mobile-shell #cms-mobile-toolbar,
+        body.cms-mobile-shell #cms-mobile-overlay,
+        body.cms-mobile-shell #cms-mobile-collections-drawer {
+          display: none !important;
+        }
+
+        body.cms-mobile-shell {
+          background: initial;
+        }
+
+        body.cms-mobile-shell #nc-root {
+          padding: 2rem;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div
+      id="cms-mobile-toolbar"
+      class="cms-mobile-toolbar"
+      role="region"
+      aria-label="Primary navigation"
+    ></div>
+    <div id="cms-mobile-overlay" hidden></div>
+    <aside id="cms-mobile-collections-drawer" aria-hidden="true"></aside>
+
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
       if (window.netlifyIdentity) {
@@ -25,21 +546,34 @@
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
     <script>
       (function initCms() {
-        if (window.CMS && typeof window.CMS.init === "function") {
-          window.CMS.init();
-          setupIdentityUI();
-          setupMobileEnhancements();
-          return;
+        const start = () => {
+          if (window.CMS && typeof window.CMS.init === "function") {
+            window.CMS.init();
+            setupIdentityUI();
+            setupMobileEnhancements();
+            return true;
+          }
+          if (
+            window.NetlifyCmsApp &&
+            typeof window.NetlifyCmsApp.init === "function"
+          ) {
+            window.NetlifyCmsApp.init();
+            setupIdentityUI();
+            setupMobileEnhancements();
+            return true;
+          }
+          return false;
+        };
+
+        if (!start()) {
+          const message =
+            "Decap CMS failed to load. Check the console for details.";
+          console.error(message);
+          document.body.insertAdjacentHTML(
+            "beforeend",
+            `<p>${message}</p>`
+          );
         }
-        if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
-          window.NetlifyCmsApp.init();
-          setupIdentityUI();
-          setupMobileEnhancements();
-          return;
-        }
-        const message = "Netlify CMS failed to load. Check the browser console for details.";
-        console.error(message);
-        document.body.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
       })();
 
       function setupIdentityUI() {
@@ -47,7 +581,7 @@
           return;
         }
 
-        const hideModalTabs = () => {
+        const simplifyModal = () => {
           const modal = document.querySelector(".netlify-identity-modal");
           if (!modal) return;
 
@@ -59,7 +593,11 @@
           const links = modal.querySelectorAll("[data-netlify-identity-button]");
           links.forEach((button) => {
             const text = (button.textContent || "").toLowerCase();
-            if (text.includes("sign up") || text.includes("signup") || text.includes("register")) {
+            if (
+              text.includes("sign up") ||
+              text.includes("signup") ||
+              text.includes("register")
+            ) {
               button.remove();
             }
           });
@@ -71,8 +609,8 @@
         };
 
         window.netlifyIdentity.on("open", () => {
-          hideModalTabs();
-          const observer = new MutationObserver(() => hideModalTabs());
+          simplifyModal();
+          const observer = new MutationObserver(() => simplifyModal());
           const modal = document.querySelector(".netlify-identity-modal");
           if (modal) {
             observer.observe(modal, { childList: true, subtree: true });
@@ -81,111 +619,18 @@
       }
 
       function setupMobileEnhancements() {
-        const MOBILE_QUERY = window.matchMedia("(max-width: 900px)");
+        const MOBILE_QUERY = window.matchMedia("(max-width: 1024px)");
         const state = {
-          button: null,
-          overlay: null,
-          nav: null,
-          panel: null,
-          topBar: null,
-          fab: null
+          topBar: document.getElementById("cms-mobile-toolbar"),
+          overlay: document.getElementById("cms-mobile-overlay"),
+          drawer: document.getElementById("cms-mobile-collections-drawer"),
+          navToggle: null,
+          crumb: null,
+          createButton: null,
         };
 
         let applyScheduled = false;
-
-        const applyTweaks = () => {
-          applyScheduled = false;
-          const root = document.getElementById("nc-root");
-          if (!root) return;
-
-          const isMobile = MOBILE_QUERY.matches;
-          const sidebar = findSidebar(root);
-
-          if (isMobile) {
-            ensureMobileTopBar(state);
-            ensureMobileCreateFab(root, state);
-          } else {
-            removeMobileCreateFab(state);
-            resetMobileTopBar(state);
-          }
-
-          if (sidebar) {
-            if (isMobile) {
-              ensureMobileNav(sidebar, state);
-            } else {
-              resetMobileNav(sidebar, state);
-            }
-          } else {
-            resetMobileNav(null, state);
-          }
-
-          const layout = sidebar ? findFlexParent(sidebar) : null;
-          if (layout) {
-            if (isMobile) {
-              applyMobileStyles(layout, {
-                display: "block",
-                width: "100%",
-                gridTemplateColumns: "minmax(0, 1fr)",
-                margin: "0"
-              });
-            } else {
-              resetMobileStyles(layout);
-            }
-          }
-
-          const mainPane =
-            root.querySelector('[data-testid="editor-pane"]') ||
-            root.querySelector("[role='main']") ||
-            root.querySelector("main");
-          if (mainPane) {
-            if (isMobile) {
-              applyMobileStyles(mainPane, {
-                marginLeft: "0",
-                width: "100%",
-                maxWidth: "100%",
-                gridColumn: "1 / -1",
-                paddingLeft: "0",
-                paddingRight: "0"
-              });
-            } else {
-              resetMobileStyles(mainPane);
-            }
-          }
-
-          const modal = findMediaModal();
-          if (modal) {
-            if (isMobile) {
-              applyMobileStyles(modal, {
-                width: "100%",
-                maxWidth: "100%",
-                left: "0",
-                right: "0",
-                margin: "0",
-                height: "100%",
-                maxHeight: "100%"
-              });
-
-              const modalContent =
-                modal.querySelector(".nc-media-library-content") ||
-                modal.querySelector("[class*='MediaLibraryContent']");
-              if (modalContent) {
-                applyMobileStyles(modalContent, { maxWidth: "100%" });
-              }
-            } else {
-              resetMobileStyles(modal);
-              const modalContent =
-                modal.querySelector(".nc-media-library-content") ||
-                modal.querySelector("[class*='MediaLibraryContent']");
-              if (modalContent) {
-                resetMobileStyles(modalContent);
-              }
-            }
-          }
-
-          if (!isMobile) {
-            setCollectionsOpen(false, state);
-          }
-        };
+        const observer = new MutationObserver(() => scheduleApply());
 
         const scheduleApply = () => {
           if (applyScheduled) return;
@@ -193,253 +638,328 @@
           requestAnimationFrame(applyTweaks);
         };
 
-        const observer = new MutationObserver(() => scheduleApply());
+        const applyTweaks = () => {
+          applyScheduled = false;
+          const root = document.getElementById("nc-root");
+          if (!root) {
+            return;
+          }
+
+          const isMobile = MOBILE_QUERY.matches;
+          document.body.classList.toggle("cms-mobile-shell", isMobile);
+
+          if (!isMobile) {
+            teardownMobile();
+            resetMobileTables(root);
+            return;
+          }
+
+          ensureTopBar();
+          ensureOverlay();
+          ensureDrawer();
+          syncDrawerContent(root);
+          updateBreadcrumb();
+          updateCreateButton();
+          transformTablesForMobile(root);
+          updateEditingState(root);
+        };
+
+        const teardownMobile = () => {
+          document.body.classList.remove(
+            "cms-mobile-shell--nav-open",
+            "cms-mobile-shell--editing"
+          );
+        if (state.navToggle) {
+          state.navToggle.removeEventListener("click", toggleNavHandler);
+          state.navToggle = null;
+        }
+        state.crumb = null;
+        state.createButton = null;
+        if (state.topBar) {
+          state.topBar.innerHTML = "";
+          delete state.topBar.dataset.bound;
+        }
+          if (state.overlay) {
+            state.overlay.hidden = true;
+          }
+          if (state.drawer) {
+            state.drawer.innerHTML = "";
+            state.drawer.setAttribute("aria-hidden", "true");
+            delete state.drawer.dataset.bound;
+          }
+          document
+            .querySelectorAll("[data-cms-mobile-nav-source]")
+            .forEach((element) => {
+              element.removeAttribute("data-cms-mobile-nav-source");
+            });
+        };
+
+        const toggleNav = (open) => {
+          document.body.classList.toggle("cms-mobile-shell--nav-open", open);
+          if (state.navToggle) {
+            state.navToggle.setAttribute("aria-expanded", open ? "true" : "false");
+            state.navToggle.setAttribute(
+              "aria-label",
+              open ? "Close collections menu" : "Open collections menu"
+            );
+          }
+          if (state.overlay) {
+            state.overlay.hidden = !open;
+          }
+          if (state.drawer) {
+            state.drawer.setAttribute("aria-hidden", open ? "false" : "true");
+          }
+        };
+
+        const toggleNavHandler = () => {
+          const open = !document.body.classList.contains(
+            "cms-mobile-shell--nav-open"
+          );
+          toggleNav(open);
+        };
+
+        const ensureTopBar = () => {
+          if (!state.topBar) {
+            return;
+          }
+          if (state.topBar.dataset.bound === "true") {
+            return;
+          }
+
+          state.topBar.innerHTML = `
+            <button
+              id="cms-mobile-nav-toggle"
+              class="cms-mobile-nav-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-label="Open collections menu"
+            >
+              <span class="cms-mobile-nav-toggle__icon" aria-hidden="true"></span>
+              <span class="cms-mobile-nav-toggle__text">Menu</span>
+            </button>
+            <div id="cms-mobile-brand">
+              <span class="cms-mobile-brand__eyebrow">TextMyLink</span>
+              <span class="cms-mobile-brand__crumb">Admin</span>
+            </div>
+            <div class="cms-mobile-toolbar__actions">
+              <a id="cms-mobile-create-primary" href="#">New Entry</a>
+            </div>
+          `;
+
+          const toggle = state.topBar.querySelector("#cms-mobile-nav-toggle");
+          const crumb = state.topBar.querySelector(".cms-mobile-brand__crumb");
+          const createButton = state.topBar.querySelector(
+            "#cms-mobile-create-primary"
+          );
+          if (toggle) {
+            toggle.addEventListener("click", toggleNavHandler);
+            state.navToggle = toggle;
+          }
+          state.crumb = crumb;
+          state.createButton = createButton;
+          state.topBar.dataset.bound = "true";
+        };
+
+        const ensureOverlay = () => {
+          if (!state.overlay) {
+            return;
+          }
+          if (state.overlay.dataset.bound === "true") {
+            return;
+          }
+          state.overlay.hidden = true;
+          state.overlay.addEventListener("click", () => toggleNav(false));
+          state.overlay.dataset.bound = "true";
+        };
+
+        const ensureDrawer = () => {
+          if (!state.drawer) {
+            return;
+          }
+          if (state.drawer.dataset.bound === "true") {
+            return;
+          }
+          state.drawer.innerHTML = `
+            <div class="cms-mobile-drawer__header">
+              <h2>Collections</h2>
+              <p>Jump into a collection or workflow.</p>
+            </div>
+          `;
+          state.drawer.setAttribute("role", "navigation");
+          state.drawer.setAttribute("aria-label", "Collections navigation");
+          state.drawer.setAttribute("aria-hidden", "true");
+          state.drawer.addEventListener("click", (event) => {
+            if (event.target.closest("a, button")) {
+              toggleNav(false);
+            }
+          });
+          state.drawer.dataset.bound = "true";
+        };
+
+        const syncDrawerContent = (root) => {
+          if (!state.drawer) {
+            return;
+          }
+          const nav = findSidebar(root);
+          if (!nav) {
+            state.drawer.setAttribute("aria-hidden", "true");
+            toggleNav(false);
+            return;
+          }
+
+          nav.dataset.cmsMobileNavSource = "true";
+
+          const existing = state.drawer.querySelector("[data-cms-mobile-nav]");
+          if (existing) {
+            existing.remove();
+          }
+
+          const clone = nav.cloneNode(true);
+          clone.dataset.cmsMobileNav = "true";
+          state.drawer.appendChild(clone);
+        };
+
+        const updateBreadcrumb = () => {
+          if (!state.crumb) {
+            return;
+          }
+          state.crumb.textContent = getRouteDescriptor();
+        };
+
+        const updateCreateButton = () => {
+          if (!state.createButton) {
+            return;
+          }
+
+          if (isAuthRoute()) {
+            state.createButton.style.display = "none";
+            return;
+          }
+
+          const collection = getDefaultCollectionName();
+          if (!collection) {
+            state.createButton.style.display = "none";
+            return;
+          }
+
+          const label = formatCollectionLabel(collection);
+          const target = `#/collections/${encodeURIComponent(collection)}/new`;
+          state.createButton.textContent = `New ${label}`;
+          state.createButton.href = target;
+          state.createButton.style.display = "inline-flex";
+          state.createButton.onclick = (event) => {
+            event.preventDefault();
+            window.location.hash = target;
+            toggleNav(false);
+          };
+        };
+
+        const updateEditingState = (root) => {
+          const toolbar = findEditorToolbar(root);
+          const editing = Boolean(toolbar);
+          document.body.classList.toggle("cms-mobile-shell--editing", editing);
+        };
+
+        const transformTablesForMobile = (root) => {
+          const tables = root.querySelectorAll("table");
+          tables.forEach((table) => {
+            const headers = Array.from(
+              table.querySelectorAll("thead th")
+            ).map((th) => (th.textContent || "").trim());
+            if (!headers.length) {
+              return;
+            }
+            const rows = table.querySelectorAll("tbody tr");
+            rows.forEach((row) => {
+              const cells = row.querySelectorAll("td");
+              cells.forEach((cell, index) => {
+                const label = headers[index];
+                if (label) {
+                  cell.dataset.header = label;
+                } else {
+                  delete cell.dataset.header;
+                }
+              });
+            });
+          });
+        };
+
         const observeRoot = () => {
           const root = document.getElementById("nc-root");
           if (!root) {
             requestAnimationFrame(observeRoot);
             return;
           }
+          observer.disconnect();
           observer.observe(root, { childList: true, subtree: true });
           scheduleApply();
         };
 
         observeRoot();
+
         if (typeof MOBILE_QUERY.addEventListener === "function") {
           MOBILE_QUERY.addEventListener("change", scheduleApply);
         } else if (typeof MOBILE_QUERY.addListener === "function") {
           MOBILE_QUERY.addListener(scheduleApply);
         }
+
+        window.addEventListener("hashchange", scheduleApply);
         window.addEventListener("resize", scheduleApply, { passive: true });
-        document.addEventListener("keydown", (event) => {
-          if (event.key === "Escape") {
-            setCollectionsOpen(false, state);
-          }
-        });
       }
 
-      function applyMobileStyles(element, styles) {
-        if (!element) return;
-        if (element.dataset.mobileOriginalStyle === undefined) {
-          element.dataset.mobileOriginalStyle = element.getAttribute("style") || "";
-        }
-        Object.assign(element.style, styles);
+      function resetMobileTables(root) {
+        if (!root) return;
+        root
+          .querySelectorAll("td[data-header]")
+          .forEach((cell) => delete cell.dataset.header);
       }
 
-      function resetMobileStyles(element) {
-        if (!element || element.dataset.mobileOriginalStyle === undefined) {
-          return;
-        }
-        const original = element.dataset.mobileOriginalStyle;
-        if (original) {
-          element.setAttribute("style", original);
-        } else {
-          element.removeAttribute("style");
-        }
-        delete element.dataset.mobileOriginalStyle;
+      function formatCollectionLabel(name) {
+        if (!name) return "Entry";
+        return decodeURIComponent(name)
+          .replace(/[-_]+/g, " ")
+          .replace(/\b\w/g, (char) => char.toUpperCase());
       }
 
-      function ensureMobileNav(nav, state) {
-        if (!nav) return;
-        state.nav = nav;
-        applyMobileStyles(nav, { display: "none" });
-
-        const topBar = ensureMobileTopBar(state);
-
-        if (!state.panel) {
-          const panelTag = nav.tagName.toLowerCase() === "nav" ? "nav" : "div";
-          const panel = document.createElement(panelTag);
-          panel.id = "cms-mobile-collections-panel";
-          panel.dataset.mobileCollectionsPanel = "true";
-          panel.setAttribute("role", "navigation");
-          panel.setAttribute("aria-label", "Collections");
-          panel.setAttribute("tabindex", "-1");
-          panel.setAttribute("aria-hidden", "true");
-          document.body.appendChild(panel);
-          panel.addEventListener("click", (event) => {
-            if (event.target.closest("a, button")) {
-              setCollectionsOpen(false, state);
-            }
-          });
-          state.panel = panel;
+      function getRouteDescriptor() {
+        const hash = window.location.hash || "";
+        if (!hash || hash === "#/" || hash === "#") {
+          return "Dashboard";
         }
-
-        if (state.panel) {
-          state.panel.innerHTML = nav.innerHTML;
-          state.panel.setAttribute(
-            "aria-hidden",
-            document.body.classList.contains("cms-collections-open") ? "false" : "true"
-          );
+        const workflow = hash.match(/#\/workflow/);
+        if (workflow) {
+          return "Workflow";
         }
-
-        const button = ensureMobileNavButton(state, topBar, state.panel ? state.panel.id : null);
-        const overlay = ensureMobileNavOverlay(state);
-        state.button = button;
-        state.overlay = overlay;
+        const newMatch = hash.match(/^#\/collections\/([^/]+)\/new/);
+        if (newMatch && newMatch[1]) {
+          return `New ${formatCollectionLabel(newMatch[1])}`;
+        }
+        const editMatch = hash.match(/^#\/collections\/([^/]+)\/entries/);
+        if (editMatch && editMatch[1]) {
+          return `Editing ${formatCollectionLabel(editMatch[1])}`;
+        }
+        const collectionMatch = hash.match(/^#\/collections\/([^/]+)/);
+        if (collectionMatch && collectionMatch[1]) {
+          return `${formatCollectionLabel(collectionMatch[1])} Entries`;
+        }
+        return "Admin";
       }
 
-      function resetMobileNav(nav, state) {
-        const originalNav = nav || state.nav;
-        if (originalNav) {
-          resetMobileStyles(originalNav);
+      function isAuthRoute() {
+        const hash = (window.location.hash || "").toLowerCase();
+        if (!hash || hash === "#/" || hash === "#") {
+          return false;
         }
-        if (state.panel) {
-          state.panel.remove();
-          state.panel = null;
-        }
-        if (state.button) {
-          state.button.remove();
-          state.button = null;
-        }
-        setCollectionsOpen(false, state);
-      }
-
-      function ensureMobileNavButton(state, topBar, controlsId) {
-        let button = document.getElementById("cms-mobile-collections-button");
-        if (!button) {
-          button = document.createElement("button");
-          button.id = "cms-mobile-collections-button";
-          button.type = "button";
-          button.setAttribute("aria-haspopup", "true");
-          button.innerHTML = '<span aria-hidden="true">â˜°</span> Collections';
-          button.addEventListener("click", () => {
-            const shouldOpen = !document.body.classList.contains("cms-collections-open");
-            setCollectionsOpen(shouldOpen, state);
-          });
-        }
-        if (topBar && button.parentNode !== topBar) {
-          topBar.appendChild(button);
-        }
-        if (controlsId) {
-          button.setAttribute("aria-controls", controlsId);
-        } else {
-          button.removeAttribute("aria-controls");
-        }
-        button.setAttribute(
-          "aria-expanded",
-          document.body.classList.contains("cms-collections-open") ? "true" : "false"
+        return (
+          hash.startsWith("#/login") ||
+          hash.startsWith("#/recover") ||
+          hash.startsWith("#/forgot") ||
+          hash.startsWith("#/invite")
         );
-        return button;
-      }
-
-      function ensureMobileNavOverlay(state) {
-        let overlay = document.getElementById("cms-mobile-collections-overlay");
-        if (!overlay) {
-          overlay = document.createElement("div");
-          overlay.id = "cms-mobile-collections-overlay";
-          overlay.style.display = "none";
-          document.body.appendChild(overlay);
-        }
-        if (!overlay.dataset.mobileBound) {
-          overlay.dataset.mobileBound = "true";
-          overlay.addEventListener("click", () => setCollectionsOpen(false, state));
-        }
-        overlay.style.display = document.body.classList.contains("cms-collections-open") ? "block" : "none";
-        return overlay;
-      }
-
-      function ensureMobileTopBar(state) {
-        if (state.topBar && document.body.contains(state.topBar)) {
-          return state.topBar;
-        }
-        let bar = document.getElementById("cms-mobile-toolbar");
-        if (!bar) {
-          bar = document.createElement("div");
-          bar.id = "cms-mobile-toolbar";
-          document.body.appendChild(bar);
-        } else if (bar.parentNode !== document.body) {
-          document.body.appendChild(bar);
-        }
-        state.topBar = bar;
-        return bar;
-      }
-
-      function resetMobileTopBar(state) {
-        if (state.button) {
-          state.button.remove();
-          state.button = null;
-        }
-        if (state.topBar) {
-          state.topBar.remove();
-          state.topBar = null;
-        }
-      }
-
-      function ensureMobileCreateFab(root, state) {
-        const isAuthRoute = () => {
-          const hash = window.location.hash || "";
-          if (!hash || hash === "#/") {
-            return true;
-          }
-          const normalized = hash.toLowerCase();
-          return (
-            normalized.startsWith("#/login") ||
-            normalized.startsWith("#/recover") ||
-            normalized.startsWith("#/forgot") ||
-            normalized.startsWith("#/invite")
-          );
-        };
-
-        const targetCollection = getDefaultCollectionName();
-        if (!targetCollection || isAuthRoute()) {
-          removeMobileCreateFab(state);
-          return;
-        }
-
-        const targetRoute = `#/collections/${encodeURIComponent(targetCollection)}/new`;
-
-        if (!state.fab || !document.body.contains(state.fab)) {
-          const fab = document.createElement("a");
-          fab.id = "cms-mobile-create-post";
-          fab.href = targetRoute;
-          fab.className = "cms-mobile-create-post";
-          fab.setAttribute("role", "button");
-          fab.setAttribute("aria-label", "Create a new blog post");
-          fab.innerHTML =
-            '<span aria-hidden="true" class="cms-mobile-create-post__icon">＋</span><span>New Blog Post</span>';
-          fab.addEventListener("click", (event) => {
-            event.preventDefault();
-            window.location.hash = targetRoute;
-          });
-          document.body.appendChild(fab);
-          state.fab = fab;
-        }
-
-        if (state.fab) {
-          state.fab.href = targetRoute;
-          state.fab.dataset.collection = targetCollection;
-          state.fab.classList.add("visible");
-        }
-      }
-
-      function removeMobileCreateFab(state) {
-        if (state.fab) {
-          state.fab.remove();
-          state.fab = null;
-        }
-      }
-
-      function setCollectionsOpen(open, state) {
-        const body = document.body;
-        if (open) {
-          body.classList.add("cms-collections-open");
-        } else {
-          body.classList.remove("cms-collections-open");
-        }
-
-        if (state.button) {
-          state.button.setAttribute("aria-expanded", open ? "true" : "false");
-        }
-        if (state.panel) {
-          state.panel.setAttribute("aria-hidden", open ? "false" : "true");
-          state.panel.setAttribute("tabindex", open ? "0" : "-1");
-        }
-        if (state.overlay) {
-          state.overlay.style.display = open ? "block" : "none";
-        }
       }
 
       function findSidebar(root) {
+        if (!root) return null;
         const navCandidates = root.querySelectorAll("[role='navigation'], aside");
         for (const el of navCandidates) {
           const text = el.textContent || "";
@@ -450,27 +970,13 @@
         return navCandidates[0] || null;
       }
 
-      function findFlexParent(element) {
-        let current = element.parentElement;
-        while (current) {
-          const style = window.getComputedStyle(current);
-          if (style.display.includes("flex")) {
-            return current;
-          }
-          current = current.parentElement;
-        }
-        return null;
-      }
-
-      function findMediaModal() {
-        const dialogs = document.querySelectorAll("[role='dialog'], [data-testid*='modal']");
-        for (const dialog of dialogs) {
-          const text = (dialog.getAttribute("aria-label") || dialog.textContent || "").toLowerCase();
-          if (text.includes("media library") || text.includes("upload")) {
-            return dialog;
-          }
-        }
-        return null;
+      function findEditorToolbar(root) {
+        if (!root) return null;
+        return (
+          root.querySelector("[data-testid='editor-toolbar']") ||
+          root.querySelector("[class*='EditorToolbar']") ||
+          null
+        );
       }
 
       function getDefaultCollectionName() {
@@ -487,7 +993,12 @@
             if (collections && typeof collections.valueSeq === "function") {
               const first = collections
                 .valueSeq()
-                .find((collection) => collection && collection.get && collection.get("create") !== false);
+                .find(
+                  (collection) =>
+                    collection &&
+                    collection.get &&
+                    collection.get("create") !== false
+                );
               if (first && typeof first.get === "function") {
                 return first.get("name");
               }
@@ -499,9 +1010,17 @@
 
         try {
           const globalConfig =
-            window.__DECAP_CMS_INITIAL_STATE__?.config || window.__NETLIFY_CMS_DATA__?.config || null;
-          if (globalConfig && Array.isArray(globalConfig.collections) && globalConfig.collections.length > 0) {
-            const firstWritable = globalConfig.collections.find((collection) => collection && collection.create !== false);
+            window.__DECAP_CMS_INITIAL_STATE__?.config ||
+            window.__NETLIFY_CMS_DATA__?.config ||
+            null;
+          if (
+            globalConfig &&
+            Array.isArray(globalConfig.collections) &&
+            globalConfig.collections.length > 0
+          ) {
+            const firstWritable = globalConfig.collections.find(
+              (collection) => collection && collection.create !== false
+            );
             if (firstWritable && firstWritable.name) {
               return firstWritable.name;
             }
@@ -515,218 +1034,3 @@
     </script>
   </body>
 </html>
-    <style>
-      #cms-mobile-toolbar,
-      #cms-mobile-collections-button,
-      #cms-mobile-collections-overlay,
-      #cms-mobile-create-post {
-        display: none;
-      }
-
-      @media (max-width: 900px) {
-        body.cms-collections-open {
-          overflow: hidden;
-        }
-
-        #nc-root {
-          overflow-x: hidden;
-          padding-top: 5.75rem;
-        }
-
-        #cms-mobile-toolbar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 1003;
-          display: flex;
-          justify-content: flex-end;
-          gap: 0.75rem;
-          align-items: center;
-          padding: 0.65rem 0.75rem;
-          background: rgba(248, 250, 252, 0.96);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.28);
-        }
-
-        #cms-mobile-collections-button {
-          position: static;
-          margin: 0;
-          flex: 0 0 auto;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          padding: 0.55rem 0.9rem;
-          border-radius: 999px;
-          border: none;
-          background: #1f2937;
-          color: #fff;
-          font-size: 0.9rem;
-          font-weight: 600;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
-          cursor: pointer;
-        }
-
-        #cms-mobile-collections-button span[aria-hidden="true"] {
-          font-size: 1.05rem;
-          line-height: 1;
-        }
-
-        body.cms-collections-open #cms-mobile-collections-button {
-          background: #3730a3;
-        }
-
-        #cms-mobile-create-post {
-          position: fixed;
-          right: 1rem;
-          bottom: calc(1.15rem + env(safe-area-inset-bottom, 0));
-          z-index: 1003;
-          display: none;
-          align-items: center;
-          gap: 0.45rem;
-          padding: 0.65rem 1.15rem;
-          border-radius: 999px;
-          border: none;
-          background: #2563eb;
-          color: #fff;
-          font-weight: 600;
-          font-size: 0.95rem;
-          box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
-          text-decoration: none;
-          cursor: pointer;
-        }
-
-        #cms-mobile-create-post span[aria-hidden="true"] {
-          font-size: 1.15rem;
-          line-height: 1;
-        }
-
-        #cms-mobile-create-post.visible {
-          display: inline-flex;
-        }
-
-        #cms-mobile-collections-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(15, 23, 42, 0.35);
-          z-index: 1001;
-        }
-
-        body.cms-collections-open #cms-mobile-collections-overlay {
-          display: block;
-        }
-
-        [data-mobile-collections-panel] {
-          position: fixed !important;
-          top: 0;
-          left: 0;
-          bottom: 0;
-          width: min(82vw, 320px);
-          max-width: 92vw;
-          background: #ffffff;
-          z-index: 1002;
-          transform: translateX(-110%);
-          transition: transform 0.25s ease;
-          box-shadow: 12px 0 32px rgba(15, 23, 42, 0.28);
-          padding: 1.25rem 1rem;
-          overflow-y: auto;
-        }
-
-        body.cms-collections-open [data-mobile-collections-panel] {
-          transform: translateX(0);
-        }
-
-        #nc-root header[role="banner"],
-        #nc-root header[role="toolbar"],
-        #nc-root [class*="EditorHeader"],
-        #nc-root [class*="CollectionHeader"] {
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: stretch !important;
-          gap: 0.75rem !important;
-          width: 100% !important;
-        }
-
-        #nc-root header[role="banner"] > *,
-        #nc-root header[role="toolbar"] > *,
-        #nc-root [class*="EditorHeader"] > *,
-        #nc-root [class*="CollectionHeader"] > * {
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-
-        #nc-root nav[role="navigation"],
-        #nc-root [class*="EditorToolbar"],
-        #nc-root [class*="HeaderToolbar"],
-        #nc-root [class*="CollectionControls"] {
-          display: flex !important;
-          flex-wrap: wrap !important;
-          justify-content: flex-start !important;
-          gap: 0.6rem !important;
-        }
-
-        #nc-root nav[role="navigation"] a,
-        #nc-root nav[role="navigation"] button,
-        #nc-root [class*="EditorToolbar"] > *,
-        #nc-root [class*="HeaderToolbar"] > * {
-          flex: 1 1 140px !important;
-          min-width: 0 !important;
-        }
-
-        #nc-root .nc-editor-status,
-        #nc-root [class*="EditorStatus"] {
-          order: -1;
-        }
-
-        #nc-root [class*="ControlPane"] label {
-          font-size: 0.85rem !important;
-        }
-
-        #nc-root [class*="ControlPane"] textarea,
-        #nc-root [class*="ControlPane"] input {
-          min-height: 42px;
-        }
-
-        #nc-root [data-testid="editor-pane"],
-        #nc-root main,
-        #nc-root [role="main"] {
-          margin-left: 0 !important;
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-
-        #nc-root [data-testid="app-container"],
-        #nc-root [data-testid="workspace"],
-        #nc-root [class*="Layout"],
-        #nc-root [class*="Container"] {
-          flex-direction: column !important;
-          align-items: stretch !important;
-          width: 100% !important;
-        }
-
-        #nc-root [class*="Pane"],
-        #nc-root [class*="EditorPane"] {
-          max-width: 100% !important;
-        }
-
-        #nc-root [class*="MediaLibrary"],
-        #nc-root [role="dialog"] {
-          width: 100% !important;
-          max-width: 100% !important;
-          left: 0 !important;
-          right: 0 !important;
-          margin: 0 !important;
-        }
-
-        #nc-root [role="dialog"] .nc-media-library-content,
-        #nc-root [role="dialog"] [class*="MediaLibraryContent"] {
-          max-width: 100% !important;
-        }
-
-        #nc-root [role="dialog"] button,
-        #nc-root [role="dialog"] input,
-        #nc-root [role="dialog"] label {
-          font-size: 16px !important;
-        }
-      }
-    </style>
