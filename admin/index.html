@@ -366,8 +366,22 @@
       }
 
       function ensureMobileCreateFab(root, state) {
+        const isAuthRoute = () => {
+          const hash = window.location.hash || "";
+          if (!hash || hash === "#/") {
+            return true;
+          }
+          const normalized = hash.toLowerCase();
+          return (
+            normalized.startsWith("#/login") ||
+            normalized.startsWith("#/recover") ||
+            normalized.startsWith("#/forgot") ||
+            normalized.startsWith("#/invite")
+          );
+        };
+
         const targetCollection = getDefaultCollectionName();
-        if (!targetCollection) {
+        if (!targetCollection || isAuthRoute()) {
           removeMobileCreateFab(state);
           return;
         }
