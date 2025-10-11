@@ -199,6 +199,8 @@
           return;
         }
 
+        const requiredCollections = ["blog_drafts", "blog_published"];
+
         console.info("[CMS Dashboard] Initializing custom dashboard", {
           nodeEnv: window.process?.env?.NODE_ENV,
           manualInit: window.CMS_MANUAL_INIT,
@@ -216,8 +218,6 @@
           collectionsReady: false,
           collectionRetryTimeout: null
         };
-
-        const requiredCollections = ["blog_drafts", "blog_published"];
 
         const ensureStyles = () => {
           if (document.getElementById("cms-dashboard-styles")) {
