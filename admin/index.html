@@ -4,44 +4,95 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TextMyLink CMS</title>
+    <style>
+      body.cms-login-required {
+        background: #f5f5f5;
+      }
+
+      body.cms-login-required #nc-root,
+      body.cms-login-required .cms-dashboard {
+        display: none !important;
+      }
+    </style>
   </head>
   <body>
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-    <script>
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.on("init", function (user) {
-          if (!user) {
-            window.netlifyIdentity.on("login", function () {
-              document.location.href = "/admin/";
-            });
-          }
-        });
-      }
-    </script>
     <script>
       window.process = window.process || { env: { NODE_ENV: "production" } };
       window.CMS_MANUAL_INIT = true;
     </script>
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
     <script>
-      (function initCms() {
-        if (window.CMS && typeof window.CMS.init === "function") {
-          window.CMS.init();
-          setupIdentityUI();
-          setupMobileEnhancements();
+      (function bootCms() {
+        let cmsInitialized = false;
+
+        function initializeCms() {
+          if (cmsInitialized) {
+            return true;
+          }
+
+          let initHandled = false;
+          if (window.CMS && typeof window.CMS.init === "function") {
+            window.CMS.init();
+            initHandled = true;
+          } else if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
+            window.NetlifyCmsApp.init();
+            initHandled = true;
+          }
+
+          if (!initHandled) {
+            return false;
+          }
+
           setupCustomDashboard();
-          return;
+          cmsInitialized = true;
+          return true;
         }
-        if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
-          window.NetlifyCmsApp.init();
+
+        function handleCmsFailure() {
+          const message = "Netlify CMS failed to load. Check the browser console for details.";
+          console.error(message);
+          document.body.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
+        }
+
+        function startCms() {
+          if (!initializeCms()) {
+            handleCmsFailure();
+          }
+        }
+
+        const identity = window.netlifyIdentity;
+        if (identity) {
+          document.body.classList.add("cms-login-required");
           setupIdentityUI();
-          setupMobileEnhancements();
-          setupCustomDashboard();
-          return;
+
+          const showLogin = () => {
+            document.body.classList.add("cms-login-required");
+            if (typeof identity.open === "function") {
+              identity.open();
+            }
+          };
+
+          const handleIdentityInit = (user) => {
+            if (user) {
+              document.body.classList.remove("cms-login-required");
+              startCms();
+            } else {
+              showLogin();
+            }
+          };
+
+          identity.on("init", handleIdentityInit);
+          identity.on("login", () => {
+            document.location.reload();
+          });
+          identity.on("logout", () => {
+            document.location.reload();
+          });
+          identity.init();
+        } else {
+          startCms();
         }
-        const message = "Netlify CMS failed to load. Check the browser console for details.";
-        console.error(message);
-        document.body.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
       })();
 
       function setupIdentityUI() {
@@ -78,144 +129,6 @@
           const modal = document.querySelector(".netlify-identity-modal");
           if (modal) {
             observer.observe(modal, { childList: true, subtree: true });
-          }
-        });
-      }
-
-      function setupMobileEnhancements() {
-        const MOBILE_QUERY = window.matchMedia("(max-width: 900px)");
-        const state = {
-          button: null,
-          overlay: null,
-          nav: null,
-          panel: null,
-          topBar: null,
-          fab: null
-        };
-
-        let applyScheduled = false;
-
-        const applyTweaks = () => {
-          applyScheduled = false;
-          const root = document.getElementById("nc-root");
-          if (!root) return;
-
-          const isMobile = MOBILE_QUERY.matches;
-          const sidebar = findSidebar(root);
-
-          if (isMobile) {
-            ensureMobileTopBar(state);
-            ensureMobileCreateFab(root, state);
-          } else {
-            removeMobileCreateFab(state);
-            resetMobileTopBar(state);
-          }
-
-          if (sidebar) {
-            if (isMobile) {
-              ensureMobileNav(sidebar, state);
-            } else {
-              resetMobileNav(sidebar, state);
-            }
-          } else {
-            resetMobileNav(null, state);
-          }
-
-          const layout = sidebar ? findFlexParent(sidebar) : null;
-          if (layout) {
-            if (isMobile) {
-              applyMobileStyles(layout, {
-                display: "block",
-                width: "100%",
-                gridTemplateColumns: "minmax(0, 1fr)",
-                margin: "0"
-              });
-            } else {
-              resetMobileStyles(layout);
-            }
-          }
-
-          const mainPane =
-            root.querySelector('[data-testid="editor-pane"]') ||
-            root.querySelector("[role='main']") ||
-            root.querySelector("main");
-          if (mainPane) {
-            if (isMobile) {
-              applyMobileStyles(mainPane, {
-                marginLeft: "0",
-                width: "100%",
-                maxWidth: "100%",
-                gridColumn: "1 / -1",
-                paddingLeft: "0",
-                paddingRight: "0"
-              });
-            } else {
-              resetMobileStyles(mainPane);
-            }
-          }
-
-          const modal = findMediaModal();
-          if (modal) {
-            if (isMobile) {
-              applyMobileStyles(modal, {
-                width: "100%",
-                maxWidth: "100%",
-                left: "0",
-                right: "0",
-                margin: "0",
-                height: "100%",
-                maxHeight: "100%"
-              });
-
-              const modalContent =
-                modal.querySelector(".nc-media-library-content") ||
-                modal.querySelector("[class*='MediaLibraryContent']");
-              if (modalContent) {
-                applyMobileStyles(modalContent, { maxWidth: "100%" });
-              }
-            } else {
-              resetMobileStyles(modal);
-              const modalContent =
-                modal.querySelector(".nc-media-library-content") ||
-                modal.querySelector("[class*='MediaLibraryContent']");
-              if (modalContent) {
-                resetMobileStyles(modalContent);
-              }
-            }
-          }
-
-          if (!isMobile) {
-            setCollectionsOpen(false, state);
-          }
-        };
-
-        const scheduleApply = () => {
-          if (applyScheduled) return;
-          applyScheduled = true;
-          requestAnimationFrame(applyTweaks);
-        };
-
-        const observer = new MutationObserver(() => scheduleApply());
-        const observeRoot = () => {
-          const root = document.getElementById("nc-root");
-          if (!root) {
-            requestAnimationFrame(observeRoot);
-            return;
-          }
-          observer.observe(root, { childList: true, subtree: true });
-          scheduleApply();
-        };
-
-        observeRoot();
-        if (typeof MOBILE_QUERY.addEventListener === "function") {
-          MOBILE_QUERY.addEventListener("change", scheduleApply);
-        } else if (typeof MOBILE_QUERY.addListener === "function") {
-          MOBILE_QUERY.addListener(scheduleApply);
-        }
-        window.addEventListener("resize", scheduleApply, { passive: true });
-        document.addEventListener("keydown", (event) => {
-          if (event.key === "Escape") {
-            setCollectionsOpen(false, state);
           }
         });
       }
@@ -811,515 +724,6 @@
         }
       }
 
-      function applyMobileStyles(element, styles) {
-        if (!element) return;
-        if (element.dataset.mobileOriginalStyle === undefined) {
-          element.dataset.mobileOriginalStyle = element.getAttribute("style") || "";
-        }
-        Object.assign(element.style, styles);
-      }
-
-      function resetMobileStyles(element) {
-        if (!element || element.dataset.mobileOriginalStyle === undefined) {
-          return;
-        }
-        const original = element.dataset.mobileOriginalStyle;
-        if (original) {
-          element.setAttribute("style", original);
-        } else {
-          element.removeAttribute("style");
-        }
-        delete element.dataset.mobileOriginalStyle;
-      }
-
-      function ensureMobileNav(nav, state) {
-        if (!nav) return;
-        state.nav = nav;
-        applyMobileStyles(nav, { display: "none" });
-
-        const topBar = ensureMobileTopBar(state);
-
-        if (!state.panel) {
-          const panelTag = nav.tagName.toLowerCase() === "nav" ? "nav" : "div";
-          const panel = document.createElement(panelTag);
-          panel.id = "cms-mobile-collections-panel";
-          panel.dataset.mobileCollectionsPanel = "true";
-          panel.setAttribute("role", "navigation");
-          panel.setAttribute("aria-label", "Collections");
-          panel.setAttribute("tabindex", "-1");
-          panel.setAttribute("aria-hidden", "true");
-          document.body.appendChild(panel);
-          panel.addEventListener("click", (event) => {
-            if (event.target.closest("a, button")) {
-              setCollectionsOpen(false, state);
-            }
-          });
-          state.panel = panel;
-        }
-
-        if (state.panel) {
-          state.panel.innerHTML = nav.innerHTML;
-          state.panel.setAttribute(
-            "aria-hidden",
-            document.body.classList.contains("cms-collections-open") ? "false" : "true"
-          );
-        }
-
-        const button = ensureMobileNavButton(state, topBar, state.panel ? state.panel.id : null);
-        const overlay = ensureMobileNavOverlay(state);
-        state.button = button;
-        state.overlay = overlay;
-      }
-
-      function resetMobileNav(nav, state) {
-        const originalNav = nav || state.nav;
-        if (originalNav) {
-          resetMobileStyles(originalNav);
-        }
-        if (state.panel) {
-          state.panel.remove();
-          state.panel = null;
-        }
-        if (state.button) {
-          state.button.remove();
-          state.button = null;
-        }
-        setCollectionsOpen(false, state);
-      }
-
-      function ensureMobileNavButton(state, topBar, controlsId) {
-        let button = document.getElementById("cms-mobile-collections-button");
-        if (!button) {
-          button = document.createElement("button");
-          button.id = "cms-mobile-collections-button";
-          button.type = "button";
-          button.setAttribute("aria-haspopup", "true");
-          button.innerHTML = '<span aria-hidden="true">â˜°</span> Collections';
-          button.addEventListener("click", () => {
-            const shouldOpen = !document.body.classList.contains("cms-collections-open");
-            setCollectionsOpen(shouldOpen, state);
-          });
-        }
-        if (topBar && button.parentNode !== topBar) {
-          topBar.appendChild(button);
-        }
-        if (controlsId) {
-          button.setAttribute("aria-controls", controlsId);
-        } else {
-          button.removeAttribute("aria-controls");
-        }
-        button.setAttribute(
-          "aria-expanded",
-          document.body.classList.contains("cms-collections-open") ? "true" : "false"
-        );
-        return button;
-      }
-
-      function ensureMobileNavOverlay(state) {
-        let overlay = document.getElementById("cms-mobile-collections-overlay");
-        if (!overlay) {
-          overlay = document.createElement("div");
-          overlay.id = "cms-mobile-collections-overlay";
-          overlay.style.display = "none";
-          document.body.appendChild(overlay);
-        }
-        if (!overlay.dataset.mobileBound) {
-          overlay.dataset.mobileBound = "true";
-          overlay.addEventListener("click", () => setCollectionsOpen(false, state));
-        }
-        overlay.style.display = document.body.classList.contains("cms-collections-open") ? "block" : "none";
-        return overlay;
-      }
-
-      function ensureMobileTopBar(state) {
-        if (state.topBar && document.body.contains(state.topBar)) {
-          return state.topBar;
-        }
-        let bar = document.getElementById("cms-mobile-toolbar");
-        if (!bar) {
-          bar = document.createElement("div");
-          bar.id = "cms-mobile-toolbar";
-          document.body.appendChild(bar);
-        } else if (bar.parentNode !== document.body) {
-          document.body.appendChild(bar);
-        }
-        state.topBar = bar;
-        return bar;
-      }
-
-      function resetMobileTopBar(state) {
-        if (state.button) {
-          state.button.remove();
-          state.button = null;
-        }
-        if (state.topBar) {
-          state.topBar.remove();
-          state.topBar = null;
-        }
-      }
-
-      function ensureMobileCreateFab(root, state) {
-        const isAuthRoute = () => {
-          const hash = window.location.hash || "";
-          if (!hash || hash === "#/") {
-            return true;
-          }
-          const normalized = hash.toLowerCase();
-          return (
-            normalized.startsWith("#/login") ||
-            normalized.startsWith("#/recover") ||
-            normalized.startsWith("#/forgot") ||
-            normalized.startsWith("#/invite")
-          );
-        };
-
-        const targetCollection = getDefaultCollectionName();
-        if (!targetCollection || isAuthRoute()) {
-          removeMobileCreateFab(state);
-          return;
-        }
-
-        const targetRoute = `#/collections/${encodeURIComponent(targetCollection)}/new`;
-
-        if (!state.fab || !document.body.contains(state.fab)) {
-          const fab = document.createElement("a");
-          fab.id = "cms-mobile-create-post";
-          fab.href = targetRoute;
-          fab.className = "cms-mobile-create-post";
-          fab.setAttribute("role", "button");
-          fab.setAttribute("aria-label", "Create a new blog post");
-          fab.innerHTML =
-            '<span aria-hidden="true" class="cms-mobile-create-post__icon">＋</span><span>New Blog Post</span>';
-          fab.addEventListener("click", (event) => {
-            event.preventDefault();
-            window.location.hash = targetRoute;
-          });
-          document.body.appendChild(fab);
-          state.fab = fab;
-        }
-
-        if (state.fab) {
-          state.fab.href = targetRoute;
-          state.fab.dataset.collection = targetCollection;
-          state.fab.classList.add("visible");
-        }
-      }
-
-      function removeMobileCreateFab(state) {
-        if (state.fab) {
-          state.fab.remove();
-          state.fab = null;
-        }
-      }
-
-      function setCollectionsOpen(open, state) {
-        const body = document.body;
-        if (open) {
-          body.classList.add("cms-collections-open");
-        } else {
-          body.classList.remove("cms-collections-open");
-        }
-
-        if (state.button) {
-          state.button.setAttribute("aria-expanded", open ? "true" : "false");
-        }
-        if (state.panel) {
-          state.panel.setAttribute("aria-hidden", open ? "false" : "true");
-          state.panel.setAttribute("tabindex", open ? "0" : "-1");
-        }
-        if (state.overlay) {
-          state.overlay.style.display = open ? "block" : "none";
-        }
-      }
-
-      function findSidebar(root) {
-        const navCandidates = root.querySelectorAll("[role='navigation'], aside");
-        for (const el of navCandidates) {
-          const text = el.textContent || "";
-          if (text.toLowerCase().includes("collections")) {
-            return el;
-          }
-        }
-        return navCandidates[0] || null;
-      }
-
-      function findFlexParent(element) {
-        let current = element.parentElement;
-        while (current) {
-          const style = window.getComputedStyle(current);
-          if (style.display.includes("flex")) {
-            return current;
-          }
-          current = current.parentElement;
-        }
-        return null;
-      }
-
-      function findMediaModal() {
-        const dialogs = document.querySelectorAll("[role='dialog'], [data-testid*='modal']");
-        for (const dialog of dialogs) {
-          const text = (dialog.getAttribute("aria-label") || dialog.textContent || "").toLowerCase();
-          if (text.includes("media library") || text.includes("upload")) {
-            return dialog;
-          }
-        }
-        return null;
-      }
-
-      function getDefaultCollectionName() {
-        const hash = window.location.hash || "";
-        const hashMatch = hash.match(/#\/collections\/([^/]+)/);
-        if (hashMatch && hashMatch[1]) {
-          return decodeURIComponent(hashMatch[1]);
-        }
-
-        try {
-          const cms = window.CMS;
-          if (cms && typeof cms.getCollections === "function") {
-            const collections = cms.getCollections();
-            if (collections && typeof collections.valueSeq === "function") {
-              const first = collections
-                .valueSeq()
-                .find((collection) => collection && collection.get && collection.get("create") !== false);
-              if (first && typeof first.get === "function") {
-                return first.get("name");
-              }
-            }
-          }
-        } catch (error) {
-          console.warn("Unable to derive collection from CMS state:", error);
-        }
-
-        try {
-          const globalConfig =
-            window.__DECAP_CMS_INITIAL_STATE__?.config || window.__NETLIFY_CMS_DATA__?.config || null;
-          if (globalConfig && Array.isArray(globalConfig.collections) && globalConfig.collections.length > 0) {
-            const firstWritable = globalConfig.collections.find((collection) => collection && collection.create !== false);
-            if (firstWritable && firstWritable.name) {
-              return firstWritable.name;
-            }
-          }
-        } catch (error) {
-          console.warn("Unable to derive collection from global config:", error);
-        }
-
-        return "blog";
-      }
     </script>
   </body>
 </html>
-    <style>
-      #cms-mobile-toolbar,
-      #cms-mobile-collections-button,
-      #cms-mobile-collections-overlay,
-      #cms-mobile-create-post {
-        display: none;
-      }
-
-      @media (max-width: 900px) {
-        body.cms-collections-open {
-          overflow: hidden;
-        }
-
-        #nc-root {
-          overflow-x: hidden;
-          padding-top: 5.75rem;
-        }
-
-        #cms-mobile-toolbar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 1003;
-          display: flex;
-          justify-content: flex-end;
-          gap: 0.75rem;
-          align-items: center;
-          padding: 0.65rem 0.75rem;
-          background: rgba(248, 250, 252, 0.96);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.28);
-        }
-
-        #cms-mobile-collections-button {
-          position: static;
-          margin: 0;
-          flex: 0 0 auto;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          padding: 0.55rem 0.9rem;
-          border-radius: 999px;
-          border: none;
-          background: #1f2937;
-          color: #fff;
-          font-size: 0.9rem;
-          font-weight: 600;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
-          cursor: pointer;
-        }
-
-        #cms-mobile-collections-button span[aria-hidden="true"] {
-          font-size: 1.05rem;
-          line-height: 1;
-        }
-
-        body.cms-collections-open #cms-mobile-collections-button {
-          background: #3730a3;
-        }
-
-        #cms-mobile-create-post {
-          position: fixed;
-          right: 1rem;
-          bottom: calc(1.15rem + env(safe-area-inset-bottom, 0));
-          z-index: 1003;
-          display: none;
-          align-items: center;
-          gap: 0.45rem;
-          padding: 0.65rem 1.15rem;
-          border-radius: 999px;
-          border: none;
-          background: #2563eb;
-          color: #fff;
-          font-weight: 600;
-          font-size: 0.95rem;
-          box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
-          text-decoration: none;
-          cursor: pointer;
-        }
-
-        #cms-mobile-create-post span[aria-hidden="true"] {
-          font-size: 1.15rem;
-          line-height: 1;
-        }
-
-        #cms-mobile-create-post.visible {
-          display: inline-flex;
-        }
-
-        #cms-mobile-collections-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(15, 23, 42, 0.35);
-          z-index: 1001;
-        }
-
-        body.cms-collections-open #cms-mobile-collections-overlay {
-          display: block;
-        }
-
-        [data-mobile-collections-panel] {
-          position: fixed !important;
-          top: 0;
-          left: 0;
-          bottom: 0;
-          width: min(82vw, 320px);
-          max-width: 92vw;
-          background: #ffffff;
-          z-index: 1002;
-          transform: translateX(-110%);
-          transition: transform 0.25s ease;
-          box-shadow: 12px 0 32px rgba(15, 23, 42, 0.28);
-          padding: 1.25rem 1rem;
-          overflow-y: auto;
-        }
-
-        body.cms-collections-open [data-mobile-collections-panel] {
-          transform: translateX(0);
-        }
-
-        #nc-root header[role="banner"],
-        #nc-root header[role="toolbar"],
-        #nc-root [class*="EditorHeader"],
-        #nc-root [class*="CollectionHeader"] {
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: stretch !important;
-          gap: 0.75rem !important;
-          width: 100% !important;
-        }
-
-        #nc-root header[role="banner"] > *,
-        #nc-root header[role="toolbar"] > *,
-        #nc-root [class*="EditorHeader"] > *,
-        #nc-root [class*="CollectionHeader"] > * {
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-
-        #nc-root nav[role="navigation"],
-        #nc-root [class*="EditorToolbar"],
-        #nc-root [class*="HeaderToolbar"],
-        #nc-root [class*="CollectionControls"] {
-          display: flex !important;
-          flex-wrap: wrap !important;
-          justify-content: flex-start !important;
-          gap: 0.6rem !important;
-        }
-
-        #nc-root nav[role="navigation"] a,
-        #nc-root nav[role="navigation"] button,
-        #nc-root [class*="EditorToolbar"] > *,
-        #nc-root [class*="HeaderToolbar"] > * {
-          flex: 1 1 140px !important;
-          min-width: 0 !important;
-        }
-
-        #nc-root .nc-editor-status,
-        #nc-root [class*="EditorStatus"] {
-          order: -1;
-        }
-
-        #nc-root [class*="ControlPane"] label {
-          font-size: 0.85rem !important;
-        }
-
-        #nc-root [class*="ControlPane"] textarea,
-        #nc-root [class*="ControlPane"] input {
-          min-height: 42px;
-        }
-
-        #nc-root [data-testid="editor-pane"],
-        #nc-root main,
-        #nc-root [role="main"] {
-          margin-left: 0 !important;
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-
-        #nc-root [data-testid="app-container"],
-        #nc-root [data-testid="workspace"],
-        #nc-root [class*="Layout"],
-        #nc-root [class*="Container"] {
-          flex-direction: column !important;
-          align-items: stretch !important;
-          width: 100% !important;
-        }
-
-        #nc-root [class*="Pane"],
-        #nc-root [class*="EditorPane"] {
-          max-width: 100% !important;
-        }
-
-        #nc-root [class*="MediaLibrary"],
-        #nc-root [role="dialog"] {
-          width: 100% !important;
-          max-width: 100% !important;
-          left: 0 !important;
-          right: 0 !important;
-          margin: 0 !important;
-        }
-
-        #nc-root [role="dialog"] .nc-media-library-content,
-        #nc-root [role="dialog"] [class*="MediaLibraryContent"] {
-          max-width: 100% !important;
-        }
-
-        #nc-root [role="dialog"] button,
-        #nc-root [role="dialog"] input,
-        #nc-root [role="dialog"] label {
-          font-size: 16px !important;
-        }
-      }
-    </style>
