@@ -624,6 +624,21 @@
           return null;
         };
 
+        const normalizeSlug = (value) => {
+          if (value == null) {
+            return null;
+          }
+
+          const stringValue = String(value).trim();
+          if (!stringValue) {
+            return null;
+          }
+
+          const withoutFolders = stringValue.split(/\\|\//).pop() || stringValue;
+          const withoutExtension = withoutFolders.replace(/\.[^.]+$/, "");
+          return withoutExtension;
+        };
+
         const toPlainEntry = (entry, fallbackCollection) => {
           if (!entry) {
             return null;
@@ -637,12 +652,13 @@
             return data;
           })();
 
-          const slug =
+          const slug = normalizeSlug(
             readValue(entry, "slug") ||
-            readValue(entry, "path") ||
-            readValue(entry, "file") ||
-            (dataValue && dataValue.slug) ||
-            null;
+              readValue(entry, "path") ||
+              readValue(entry, "file") ||
+              (dataValue && dataValue.slug) ||
+              null
+          );
 
           const title =
             dataValue?.title ||
@@ -898,7 +914,21 @@
           }
 
           try {
-            const result = await backend.listEntries(toPlainCollection(collection));
+            const backendCollection =
+              collection && typeof collection.get === "function"
+                ? collection
+                : typeof cms.getCollection === "function"
+                  ? cms.getCollection(collectionName) || collection
+                  : collection;
+
+            if (!backendCollection || typeof backendCollection.get !== "function") {
+              console.warn(
+                `Unable to load entries for ${collectionKey}: backend collection config is unavailable.`
+              );
+              return storeEntries;
+            }
+
+            const result = await backend.listEntries(backendCollection);
             const entries = Array.isArray(result?.entries)
               ? result.entries
               : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
