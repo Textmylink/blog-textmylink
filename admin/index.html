@@ -562,57 +562,234 @@
           return [value];
         };
 
+        const readValue = (source, key) => {
+          if (!source) {
+            return undefined;
+          }
+
+          if (typeof source.get === "function") {
+            return source.get(key);
+          }
+
+          return source[key];
+        };
+
+        const toPlainData = (data) => {
+          if (data == null) {
+            return {};
+          }
+
+          if (typeof data.toJS === "function") {
+            return data.toJS();
+          }
+
+          if (typeof data.toJSON === "function") {
+            return data.toJSON();
+          }
+
+          if (typeof data.get === "function" && typeof data.forEach === "function") {
+            const result = {};
+            data.forEach((value, key) => {
+              result[key] = toPlainData(value);
+            });
+            return result;
+          }
+
+          return data;
+        };
+
+        const getEntryData = (entry) => {
+          const data = readValue(entry, "data");
+          if (data == null) {
+            return {};
+          }
+          return toPlainData(data);
+        };
+
+        const getValueByPath = (source, path) => {
+          if (!source || !path) {
+            return undefined;
+          }
+
+          const segments = String(path).split(".");
+          let current = source;
+
+          for (const segment of segments) {
+            if (current == null) {
+              return undefined;
+            }
+
+            if (typeof current.get === "function") {
+              current = current.get(segment);
+            } else if (Array.isArray(current)) {
+              const index = Number(segment);
+              if (Number.isNaN(index)) {
+                return undefined;
+              }
+              current = current[index];
+            } else {
+              current = current[segment];
+            }
+
+            if (current && typeof current.toJS === "function") {
+              current = current.toJS();
+            }
+
+            if (current && typeof current.toJSON === "function") {
+              current = current.toJSON();
+            }
+          }
+
+          return current;
+        };
+
+        const normalizeComparableValue = (value) => {
+          if (value && typeof value.toJS === "function") {
+            value = value.toJS();
+          }
+
+          if (value && typeof value.toJSON === "function") {
+            value = value.toJSON();
+          }
+
+          if (Array.isArray(value)) {
+            return value.map((item) => normalizeComparableValue(item));
+          }
+
+          if (typeof value === "string") {
+            const trimmed = value.trim();
+            const lower = trimmed.toLowerCase();
+            if (lower === "true") {
+              return true;
+            }
+            if (lower === "false") {
+              return false;
+            }
+            return trimmed;
+          }
+
+          return value;
+        };
+
+        const valuesMatch = (entryValue, expectedValue) => {
+          const normalizedEntry = normalizeComparableValue(entryValue);
+          const normalizedExpected = normalizeComparableValue(expectedValue);
+
+          if (Array.isArray(normalizedExpected)) {
+            return normalizedExpected.some((value) => valuesMatch(normalizedEntry, value));
+          }
+
+          if (Array.isArray(normalizedEntry)) {
+            return normalizedEntry.some((value) => valuesMatch(value, normalizedExpected));
+          }
+
+          return normalizedEntry === normalizedExpected;
+        };
+
+        const getCollectionFilters = (collection) => {
+          if (!collection) {
+            return [];
+          }
+
+          const rawFilter =
+            typeof collection.get === "function" ? collection.get("filter") : collection.filter;
+
+          if (!rawFilter) {
+            return [];
+          }
+
+          const filters = [];
+
+          const pushFilter = (item) => {
+            if (!item) {
+              return;
+            }
+
+            if (typeof item.toJS === "function") {
+              pushFilter(item.toJS());
+              return;
+            }
+
+            if (typeof item.toJSON === "function") {
+              pushFilter(item.toJSON());
+              return;
+            }
+
+            if (typeof item.toArray === "function") {
+              item.toArray().forEach(pushFilter);
+              return;
+            }
+
+            if (Array.isArray(item)) {
+              item.forEach(pushFilter);
+              return;
+            }
+
+            if (typeof item === "object" && Object.prototype.hasOwnProperty.call(item, "field")) {
+              filters.push({ field: item.field, value: item.value });
+            }
+          };
+
+          pushFilter(rawFilter);
+
+          return filters.filter((filter) => typeof filter.field === "string");
+        };
+
+        const entryMatchesFilters = (entry, filters) => {
+          if (!filters || filters.length === 0) {
+            return true;
+          }
+
+          const data = getEntryData(entry);
+
+          return filters.every((filter) => {
+            const entryValue = getValueByPath(data, filter.field);
+            return valuesMatch(entryValue, filter.value);
+          });
+        };
+
+        const applyCollectionFilters = (entries, filters) => {
+          if (!filters || filters.length === 0) {
+            return entries;
+          }
+
+          return entries.filter((entry) => entryMatchesFilters(entry, filters));
+        };
+
         const toPlainEntry = (entry, fallbackCollection) => {
           if (!entry) {
             return null;
           }
 
-          const read = (source, key) => {
-            if (!source) return undefined;
-            if (typeof source.get === "function") {
-              return source.get(key);
-            }
-            return source[key];
-          };
-
           const dataValue = (() => {
-            const data = read(entry, "data");
-            if (!data) return {};
-            if (typeof data.toJS === "function") {
-              return data.toJS();
-            }
-            if (typeof data.toJSON === "function") {
-              return data.toJSON();
-            }
-            if (typeof data.get === "function") {
-              const result = {};
-              data.forEach((value, key) => {
-                result[key] = value;
-              });
-              return result;
+            const data = getEntryData(entry);
+            if (!data) {
+              return {};
             }
             return data;
           })();
 
           const slug =
-            read(entry, "slug") ||
-            read(entry, "path") ||
-            read(entry, "file") ||
+            readValue(entry, "slug") ||
+            readValue(entry, "path") ||
+            readValue(entry, "file") ||
             (dataValue && dataValue.slug) ||
             null;
 
           const title =
             dataValue?.title ||
-            read(entry, "label") ||
+            readValue(entry, "label") ||
             (slug ? slug.replace(/[-_]/g, " ") : "Untitled Post");
 
-          const date = dataValue?.date || read(entry, "updatedOn") || read(entry, "updated_at") || null;
+          const date =
+            dataValue?.date || readValue(entry, "updatedOn") || readValue(entry, "updated_at") || null;
 
           return {
             slug,
             title,
             date,
-            collection: read(entry, "collection") || dataValue?.collection || fallbackCollection || null
+            collection:
+              readValue(entry, "collection") || dataValue?.collection || fallbackCollection || null
           };
         };
 
@@ -707,6 +884,8 @@
           const collectionKey =
             collection && typeof collection.get === "function" ? collection.get("name") || collectionName : collectionName;
 
+          const filters = getCollectionFilters(collection);
+
           const store = cms.store;
           const actions = cms.actions;
 
@@ -724,9 +903,9 @@
                     .map((slug) => entriesState.getIn(["entities", `${collectionKey}.${slug}`]))
                     .filter(Boolean);
 
-                  const formatted = rawEntries
-                    .map((entry) => toPlainEntry(entry, collectionKey))
-                    .filter(Boolean);
+                  const filteredEntries = applyCollectionFilters(rawEntries, filters);
+
+                  const formatted = filteredEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean);
 
                   if (formatted.length > 0) {
                     return formatted;
@@ -753,9 +932,10 @@
               return [];
             }
 
-            return entries
-              .map((entry) => toPlainEntry(entry, collectionKey))
-              .filter(Boolean);
+            const arrayEntries = Array.isArray(entries) ? entries : toArray(entries);
+            const filteredEntries = applyCollectionFilters(arrayEntries, filters);
+
+            return filteredEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean);
           } catch (error) {
             console.error(`Failed to load entries for ${collectionKey}:`, error);
             return [];
