@@ -614,154 +614,22 @@
           return toPlainData(data);
         };
 
-        const getValueByPath = (source, path) => {
-          if (!source || !path) {
-            return undefined;
-          }
-
-          const segments = String(path).split(".");
-          let current = source;
-
-          for (const segment of segments) {
-            if (current == null) {
-              return undefined;
-            }
-
-            if (typeof current.get === "function") {
-              current = current.get(segment);
-            } else if (Array.isArray(current)) {
-              const index = Number(segment);
-              if (Number.isNaN(index)) {
-                return undefined;
-              }
-              current = current[index];
-            } else {
-              current = current[segment];
-            }
-
-            if (current && typeof current.toJS === "function") {
-              current = current.toJS();
-            }
-
-            if (current && typeof current.toJSON === "function") {
-              current = current.toJSON();
-            }
-          }
-
-          return current;
-        };
-
-        const normalizeComparableValue = (value) => {
-          if (value && typeof value.toJS === "function") {
-            value = value.toJS();
-          }
-
-          if (value && typeof value.toJSON === "function") {
-            value = value.toJSON();
-          }
-
-          if (Array.isArray(value)) {
-            return value.map((item) => normalizeComparableValue(item));
+        const interpretDraftFlag = (value) => {
+          if (value === true || value === false) {
+            return value;
           }
 
           if (typeof value === "string") {
-            const trimmed = value.trim();
-            const lower = trimmed.toLowerCase();
-            if (lower === "true") {
+            const normalized = value.trim().toLowerCase();
+            if (normalized === "true") {
               return true;
             }
-            if (lower === "false") {
+            if (normalized === "false") {
               return false;
             }
-            return trimmed;
           }
 
-          return value;
-        };
-
-        const valuesMatch = (entryValue, expectedValue) => {
-          const normalizedEntry = normalizeComparableValue(entryValue);
-          const normalizedExpected = normalizeComparableValue(expectedValue);
-
-          if (Array.isArray(normalizedExpected)) {
-            return normalizedExpected.some((value) => valuesMatch(normalizedEntry, value));
-          }
-
-          if (Array.isArray(normalizedEntry)) {
-            return normalizedEntry.some((value) => valuesMatch(value, normalizedExpected));
-          }
-
-          return normalizedEntry === normalizedExpected;
-        };
-
-        const getCollectionFilters = (collection) => {
-          if (!collection) {
-            return [];
-          }
-
-          const rawFilter =
-            typeof collection.get === "function" ? collection.get("filter") : collection.filter;
-
-          if (!rawFilter) {
-            return [];
-          }
-
-          const filters = [];
-
-          const pushFilter = (item) => {
-            if (!item) {
-              return;
-            }
-
-            if (typeof item.toJS === "function") {
-              pushFilter(item.toJS());
-              return;
-            }
-
-            if (typeof item.toJSON === "function") {
-              pushFilter(item.toJSON());
-              return;
-            }
-
-            if (typeof item.toArray === "function") {
-              item.toArray().forEach(pushFilter);
-              return;
-            }
-
-            if (Array.isArray(item)) {
-              item.forEach(pushFilter);
-              return;
-            }
-
-            if (typeof item === "object" && Object.prototype.hasOwnProperty.call(item, "field")) {
-              filters.push({ field: item.field, value: item.value });
-            }
-          };
-
-          pushFilter(rawFilter);
-
-          return filters.filter((filter) => typeof filter.field === "string");
-        };
-
-        const entryMatchesFilters = (entry, filters) => {
-          if (!filters || filters.length === 0) {
-            return true;
-          }
-
-          const data = getEntryData(entry);
-
-          return filters.every((filter) => {
-            const entryValue = getValueByPath(data, filter.field);
-            return valuesMatch(entryValue, filter.value);
-          });
-        };
-
-        const applyCollectionFilters = (entries, filters) => {
-          if (!filters || filters.length === 0) {
-            return entries;
-          }
-
-          return entries.filter((entry) => entryMatchesFilters(entry, filters));
+          return null;
         };
 
         const toPlainEntry = (entry, fallbackCollection) => {
@@ -792,13 +660,55 @@
           const date =
             dataValue?.date || readValue(entry, "updatedOn") || readValue(entry, "updated_at") || null;
 
+          const draftFlag = interpretDraftFlag(dataValue?.draft);
+          const isDraft = draftFlag != null ? draftFlag : false;
+
           return {
             slug,
             title,
             date,
+            isDraft,
             collection:
               readValue(entry, "collection") || dataValue?.collection || fallbackCollection || null
           };
+        };
+
+        const dedupeEntriesBySlug = (entries) => {
+          const seen = new Set();
+          return entries.filter((entry) => {
+            const key = entry?.slug || `${entry?.collection || ""}:${entry?.title || ""}`;
+            if (seen.has(key)) {
+              return false;
+            }
+            seen.add(key);
+            return true;
+          });
+        };
+
+        const stripCollectionFilter = (collection) => {
+          if (!collection) {
+            return collection;
+          }
+
+          if (typeof collection.delete === "function") {
+            return collection.delete("filter");
+          }
+
+          if (typeof collection.remove === "function") {
+            return collection.remove("filter");
+          }
+
+          if (typeof collection.set === "function") {
+            return collection.set("filter", undefined);
+          }
+
+          if (typeof collection === "object") {
+            const clone = { ...collection };
+            delete clone.filter;
+            return clone;
+          }
+
+          return collection;
         };
 
         const sortEntries = (entries) => {
@@ -967,25 +877,29 @@
           return false;
         }
 
-        const loadCollectionEntries = async (collectionName) => {
-          const collection = getCollectionConfig(collectionName);
+        const loadBlogEntries = async () => {
+          const collection = getCollectionConfig("blog_drafts");
           if (!collection) {
             return [];
           }
 
-          const collectionKey =
-            collection && typeof collection.get === "function" ? collection.get("name") || collectionName : collectionName;
+          const targetCollection = stripCollectionFilter(collection);
 
-          const filters = getCollectionFilters(collection);
+          const collectionKey =
+            collection && typeof collection.get === "function"
+              ? collection.get("name") || "blog_drafts"
+              : collection?.name || "blog_drafts";
 
           const store = cms.store;
           const actions = cms.actions;
+
+          let storeEntries = [];
 
           if (store && typeof store.dispatch === "function" && typeof store.getState === "function") {
             const loadEntriesAction = actions && typeof actions.loadEntries === "function" ? actions.loadEntries : null;
             if (loadEntriesAction) {
               try {
-                await store.dispatch(loadEntriesAction(collection));
+                await store.dispatch(loadEntriesAction(targetCollection));
                 const state = store.getState();
                 const entriesState = state && state.entries;
                 if (entriesState && typeof entriesState.getIn === "function") {
@@ -995,12 +909,14 @@
                     .map((slug) => entriesState.getIn(["entities", `${collectionKey}.${slug}`]))
                     .filter(Boolean);
 
-                  const filteredEntries = applyCollectionFilters(rawEntries, filters);
+                  const formatted = rawEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean);
+                  storeEntries = dedupeEntriesBySlug(formatted);
 
-                  const formatted = filteredEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean);
+                  const hasDraft = storeEntries.some((entry) => entry.isDraft);
+                  const hasPublished = storeEntries.some((entry) => entry && !entry.isDraft);
 
-                  if (formatted.length > 0) {
-                    return formatted;
+                  if (storeEntries.length > 0 && hasDraft && hasPublished) {
+                    return storeEntries;
                   }
                 }
               } catch (error) {
@@ -1011,11 +927,11 @@
 
           const backend = typeof cms.getBackend === "function" ? cms.getBackend() : null;
           if (!backend || typeof backend.listEntries !== "function") {
-            return [];
+            return storeEntries;
           }
 
           try {
-            const result = await backend.listEntries(collection);
+            const result = await backend.listEntries(targetCollection);
             const entries = Array.isArray(result?.entries)
               ? result.entries
               : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
@@ -1025,12 +941,19 @@
             }
 
             const arrayEntries = Array.isArray(entries) ? entries : toArray(entries);
-            const filteredEntries = applyCollectionFilters(arrayEntries, filters);
 
-            return filteredEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean);
+            const formatted = dedupeEntriesBySlug(
+              arrayEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean)
+            );
+
+            if (storeEntries.length > 0) {
+              return dedupeEntriesBySlug([...storeEntries, ...formatted]);
+            }
+
+            return formatted;
           } catch (error) {
             console.error(`Failed to load entries for ${collectionKey}:`, error);
-            return [];
+            return storeEntries;
           }
         };
 
@@ -1047,10 +970,7 @@
           const currentToken = ++state.refreshToken;
           setLoading(true);
 
-          const [drafts, published] = await Promise.all([
-            loadCollectionEntries("blog_drafts"),
-            loadCollectionEntries("blog_published")
-          ]);
+          const entries = await loadBlogEntries();
 
           if (currentToken !== state.refreshToken || !state.visible) {
             if (currentToken === state.refreshToken) {
@@ -1058,6 +978,20 @@
             }
             return;
           }
+
+          const drafts = [];
+          const published = [];
+
+          entries.forEach((entry) => {
+            if (!entry) {
+              return;
+            }
+            if (entry.isDraft) {
+              drafts.push(entry);
+            } else {
+              published.push(entry);
+            }
+          });
 
           state.drafts = drafts;
           state.published = published;
