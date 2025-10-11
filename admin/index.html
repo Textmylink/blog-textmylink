@@ -534,7 +534,35 @@
             .replace(/'/g, "&#39;");
         };
 
-        const toPlainEntry = (entry) => {
+        const toArray = (value) => {
+          if (!value) {
+            return [];
+          }
+
+          if (Array.isArray(value)) {
+            return value;
+          }
+
+          if (typeof value.toArray === "function") {
+            return value.toArray();
+          }
+
+          if (typeof value.toJS === "function") {
+            return value.toJS();
+          }
+
+          if (typeof value.forEach === "function") {
+            const result = [];
+            value.forEach((item) => {
+              result.push(item);
+            });
+            return result;
+          }
+
+          return [value];
+        };
+
+        const toPlainEntry = (entry, fallbackCollection) => {
           if (!entry) {
             return null;
           }
@@ -584,7 +612,7 @@
             slug,
             title,
             date,
-            collection: read(entry, "collection") || dataValue?.collection || null
+            collection: read(entry, "collection") || dataValue?.collection || fallbackCollection || null
           };
         };
 
@@ -676,6 +704,40 @@
             return [];
           }
 
+          const collectionKey =
+            collection && typeof collection.get === "function" ? collection.get("name") || collectionName : collectionName;
+
+          const store = cms.store;
+          const actions = cms.actions;
+
+          if (store && typeof store.dispatch === "function" && typeof store.getState === "function") {
+            const loadEntriesAction = actions && typeof actions.loadEntries === "function" ? actions.loadEntries : null;
+            if (loadEntriesAction) {
+              try {
+                await store.dispatch(loadEntriesAction(collection));
+                const state = store.getState();
+                const entriesState = state && state.entries;
+                if (entriesState && typeof entriesState.getIn === "function") {
+                  const ids = entriesState.getIn(["pages", collectionKey, "ids"]);
+                  const entrySlugs = toArray(ids);
+                  const rawEntries = entrySlugs
+                    .map((slug) => entriesState.getIn(["entities", `${collectionKey}.${slug}`]))
+                    .filter(Boolean);
+
+                  const formatted = rawEntries
+                    .map((entry) => toPlainEntry(entry, collectionKey))
+                    .filter(Boolean);
+
+                  if (formatted.length > 0) {
+                    return formatted;
+                  }
+                }
+              } catch (error) {
+                console.error(`Failed to load entries for ${collectionKey} from store:`, error);
+              }
+            }
+          }
+
           const backend = typeof cms.getBackend === "function" ? cms.getBackend() : null;
           if (!backend || typeof backend.listEntries !== "function") {
             return [];
@@ -692,10 +754,10 @@
             }
 
             return entries
-              .map((entry) => toPlainEntry(entry))
+              .map((entry) => toPlainEntry(entry, collectionKey))
               .filter(Boolean);
           } catch (error) {
-            console.error(`Failed to load entries for ${collectionName}:`, error);
+            console.error(`Failed to load entries for ${collectionKey}:`, error);
             return [];
           }
         };
