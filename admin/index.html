@@ -1,11 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TextMyLink CMS</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        background: #f5f5f5;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+        color: #111827;
+      }
+
+      body:before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at top, rgba(79, 70, 229, 0.08), transparent 55%);
+        pointer-events: none;
+      }
+
+      .cms-shell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 2rem 1.5rem;
+        box-sizing: border-box;
+      }
+
+      .cms-card {
+        width: min(520px, 100%);
+        padding: 2.5rem 2.25rem;
+        background: #ffffff;
+        border-radius: 1.25rem;
+        box-shadow: 0 25px 50px rgba(15, 23, 42, 0.12);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        align-items: stretch;
+        text-align: center;
+      }
+
+      .cms-card__title {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 2.6rem);
+        font-weight: 700;
+      }
+
+      .cms-card__subtitle {
+        margin: 0;
+        font-size: 1rem;
+        color: #6b7280;
+      }
+
+      .cms-card__actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .cms-card__button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        border: none;
+        border-radius: 999px;
+        padding: 0.95rem 1.5rem;
+        font-size: 1.05rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: #111827;
+        color: #ffffff;
+        box-shadow: 0 16px 35px rgba(17, 24, 39, 0.18);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .cms-card__button:hover,
+      .cms-card__button:focus {
+        transform: translateY(-1px);
+        box-shadow: 0 24px 45px rgba(17, 24, 39, 0.2);
+      }
+
+      .cms-card__link {
+        font-size: 0.95rem;
+        color: #4f46e5;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .cms-card__link:hover,
+      .cms-card__link:focus {
+        text-decoration: underline;
+      }
+
+      .cms-card[hidden] {
+        display: none;
+      }
+
+      #nc-root {
+        display: none;
+      }
+
+      #nc-root.cms-active {
+        display: block;
+        min-height: 100vh;
+      }
+    </style>
   </head>
   <body>
+    <div class="cms-shell">
+      <div class="cms-card" id="cms-login-card">
+        <div>
+          <h1 class="cms-card__title">Admin Portal</h1>
+          <p class="cms-card__subtitle">Sign in to manage posts and media.</p>
+        </div>
+        <div class="cms-card__actions">
+          <button type="button" class="cms-card__button" data-cms-action="login">
+            <span aria-hidden="true">🔐</span>
+            <span>Log in with Netlify Identity</span>
+          </button>
+          <a
+            class="cms-card__link"
+            href="https://docs.netlify.com/visitor-access/identity/"
+            target="_blank"
+            rel="noreferrer"
+          >Need access?</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="nc-root" role="main" aria-hidden="true"></div>
+
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
       window.process = window.process || { env: { NODE_ENV: "production" } };
@@ -13,91 +143,66 @@
     </script>
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
     <script>
-      (function bootCms() {
-        let cmsInitialized = false;
-        let cmsInitPromise = null;
+      (function () {
+        const loginCard = document.getElementById("cms-login-card");
+        const loginButton = loginCard?.querySelector("[data-cms-action='login']");
+        const cmsRoot = document.getElementById("nc-root");
 
-        function initializeCms() {
-          if (cmsInitialized) {
-            return true;
+        function showLoginCard() {
+          if (loginCard) {
+            loginCard.hidden = false;
           }
-
-          if (cmsInitPromise) {
-            return true;
+          if (cmsRoot) {
+            cmsRoot.classList.remove("cms-active");
+            cmsRoot.setAttribute("aria-hidden", "true");
           }
-
-          let initHandled = false;
-          let initResult;
-          if (window.CMS && typeof window.CMS.init === "function") {
-            initResult = window.CMS.init();
-            initHandled = true;
-          } else if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
-            initResult = window.NetlifyCmsApp.init();
-            initHandled = true;
-          }
-
-          if (!initHandled) {
-            return false;
-          }
-
-          const handleReady = () => {
-            if (cmsInitialized) {
-              return;
-            }
-            setupCustomDashboard();
-            cmsInitialized = true;
-            cmsInitPromise = null;
-          };
-
-          if (initResult && typeof initResult.then === "function") {
-            cmsInitPromise = initResult
-              .then(() => {
-                handleReady();
-              })
-              .catch((error) => {
-                console.error("Netlify CMS failed to initialize", error);
-                handleCmsFailure();
-                cmsInitPromise = null;
-              });
-          } else {
-            handleReady();
-          }
-
-          return true;
         }
 
-        function handleCmsFailure(message) {
-          const fallback =
-            message || "Netlify CMS failed to load. Check the browser console for details.";
-          console.error(fallback);
-          if (!document.querySelector("[data-cms-error]")) {
-            const para = document.createElement("p");
-            para.setAttribute("data-cms-error", "true");
-            para.textContent = fallback;
-            document.body.appendChild(para);
+        function showCms() {
+          if (loginCard) {
+            loginCard.hidden = true;
+          }
+          if (cmsRoot) {
+            cmsRoot.classList.add("cms-active");
+            cmsRoot.setAttribute("aria-hidden", "false");
           }
         }
 
         function startCms() {
-          if (!initializeCms()) {
-            handleCmsFailure();
+          if (!window.CMS || typeof window.CMS.init !== "function") {
+            console.error("Decap CMS is not available");
+            return;
+          }
+
+          const initResult = window.CMS.init();
+          if (initResult && typeof initResult.then === "function") {
+            initResult
+              .then(() => {
+                showCms();
+              })
+              .catch((error) => {
+                console.error("Decap CMS failed to initialize", error);
+                showLoginCard();
+              });
+          } else {
+            showCms();
           }
         }
 
         function bindIdentity(identity) {
-          setupIdentityUI();
+          if (!identity) {
+            showLoginCard();
+            return;
+          }
+
+          if (loginButton) {
+            loginButton.addEventListener("click", () => identity.open("login"));
+          }
 
           const requireLogin = () => {
-            if (typeof identity.open !== "function") {
-              return;
-            }
-
-            const openLogin = () => identity.open("login");
-
-            if (typeof window.requestAnimationFrame === "function") {
-              window.requestAnimationFrame(openLogin);
-            } else {
-              setTimeout(openLogin, 0);
+            showLoginCard();
+            if (typeof identity.open === "function") {
+              identity.open("login");
             }
           };
 
@@ -113,1234 +218,45 @@
             if (typeof identity.close === "function") {
               identity.close();
             }
-
             startCms();
-          });
-
-          identity.on("close", () => {
-            if (!identity.currentUser()) {
-              requireLogin();
-            }
           });
 
           identity.on("logout", () => {
             requireLogin();
           });
 
+          identity.on("close", () => {
+            if (!identity.currentUser()) {
+              showLoginCard();
+            }
+          });
+
           identity.on("error", (error) => {
             console.error("Netlify Identity error", error);
+            showLoginCard();
           });
 
           identity.init();
         }
 
-        function waitForIdentity(attemptsLeft) {
+        function waitForIdentity(attempts) {
           const identity = window.netlifyIdentity;
-
           if (identity) {
             bindIdentity(identity);
             return;
           }
 
-          if (attemptsLeft <= 0) {
-            handleCmsFailure(
-              "Netlify Identity failed to load. Please refresh the page or contact an administrator."
-            );
+          if (attempts <= 0) {
+            console.error("Netlify Identity failed to load");
+            showLoginCard();
             return;
           }
 
-          setTimeout(() => waitForIdentity(attemptsLeft - 1), 250);
+          setTimeout(() => waitForIdentity(attempts - 1), 250);
         }
 
         waitForIdentity(40);
       })();
-
-      function setupIdentityUI() {
-        if (!window.netlifyIdentity) {
-          return;
-        }
-
-        const hideModalTabs = () => {
-          const modal = document.querySelector(".netlify-identity-modal");
-          if (!modal) return;
-
-          const tabs = modal.querySelector("[data-netlify-identity-menu]");
-          if (tabs) {
-            tabs.style.display = "none";
-          }
-
-          const links = modal.querySelectorAll("[data-netlify-identity-button]");
-          links.forEach((button) => {
-            const text = (button.textContent || "").toLowerCase();
-            if (text.includes("sign up") || text.includes("signup") || text.includes("register")) {
-              button.remove();
-            }
-          });
-
-          const heading = modal.querySelector(".netlify-identity-title");
-          if (heading) {
-            heading.textContent = "Log in";
-          }
-        };
-
-        window.netlifyIdentity.on("open", () => {
-          hideModalTabs();
-          const observer = new MutationObserver(() => hideModalTabs());
-          const modal = document.querySelector(".netlify-identity-modal");
-          if (modal) {
-            observer.observe(modal, { childList: true, subtree: true });
-          }
-        });
-      }
-
-      function setupCustomDashboard() {
-        const cms = window.CMS;
-        if (!cms) {
-          return;
-        }
-
-        const requiredCollections = ["blog_drafts", "blog_published"];
-
-        console.info("[CMS Dashboard] Initializing custom dashboard", {
-          nodeEnv: window.process?.env?.NODE_ENV,
-          manualInit: window.CMS_MANUAL_INIT,
-          requiredCollections
-        });
-
-        const state = {
-          overlay: null,
-          drafts: [],
-          published: [],
-          loading: false,
-          refreshToken: 0,
-          visible: false,
-          collectionUnsubscribe: null,
-          collectionsReady: false,
-          collectionRetryTimeout: null
-        };
-
-        const ensureStyles = () => {
-          if (document.getElementById("cms-dashboard-styles")) {
-            return;
-          }
-
-          const style = document.createElement("style");
-          style.id = "cms-dashboard-styles";
-          style.textContent = `
-            body.cms-dashboard-active {
-              background: #f5f5f5;
-            }
-
-            .cms-dashboard-hidden {
-              position: absolute !important;
-              width: 1px !important;
-              height: 1px !important;
-              overflow: hidden !important;
-              clip: rect(0 0 0 0) !important;
-              white-space: nowrap !important;
-            }
-
-            .cms-dashboard {
-              position: relative;
-              display: none;
-              min-height: 100vh;
-              padding: 2.5rem 1.5rem 3.5rem;
-              box-sizing: border-box;
-              background: #f5f5f5;
-              color: #111827;
-              font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
-            }
-
-            .cms-dashboard.is-visible {
-              display: flex;
-              flex-direction: column;
-              align-items: stretch;
-              gap: 1.5rem;
-            }
-
-            .cms-dashboard__inner {
-              width: min(480px, 100%);
-              margin: 0 auto;
-              display: flex;
-              flex-direction: column;
-              gap: 1.5rem;
-            }
-
-            .cms-dashboard__title {
-              font-size: clamp(2rem, 5vw, 2.5rem);
-              font-weight: 700;
-              margin: 0;
-            }
-
-            .cms-dashboard__cta {
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              gap: 0.65rem;
-              padding: 0.9rem 1.25rem;
-              border-radius: 0.95rem;
-              font-size: 1rem;
-              font-weight: 600;
-              border: none;
-              cursor: pointer;
-              background: #111827;
-              color: #ffffff;
-              box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
-              transition: transform 0.15s ease, box-shadow 0.15s ease;
-            }
-
-            .cms-dashboard__cta:hover,
-            .cms-dashboard__cta:focus {
-              transform: translateY(-1px);
-              box-shadow: 0 16px 30px rgba(15, 23, 42, 0.25);
-            }
-
-            .cms-dashboard__section {
-              display: flex;
-              flex-direction: column;
-              gap: 0.75rem;
-            }
-
-            .cms-dashboard__section-heading {
-              font-size: 1rem;
-              font-weight: 600;
-              margin: 0;
-              text-transform: uppercase;
-              letter-spacing: 0.08em;
-              color: #374151;
-            }
-
-            .cms-dashboard__list {
-              display: flex;
-              flex-direction: column;
-              gap: 0.85rem;
-            }
-
-            .cms-dashboard__entry {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-start;
-              gap: 0.35rem;
-              text-align: left;
-              border: none;
-              padding: 1rem 1.15rem;
-              border-radius: 0.9rem;
-              background: #ffffff;
-              box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-              font-size: 1rem;
-              line-height: 1.4;
-              font-weight: 500;
-              color: inherit;
-              cursor: pointer;
-              transition: transform 0.12s ease, box-shadow 0.12s ease;
-            }
-
-            .cms-dashboard__entry:hover,
-            .cms-dashboard__entry:focus {
-              transform: translateY(-1px);
-              box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
-            }
-
-            .cms-dashboard__entry-title {
-              font-size: 1.02rem;
-              font-weight: 600;
-              color: #111827;
-              word-break: break-word;
-            }
-
-            .cms-dashboard__entry-meta {
-              font-size: 0.82rem;
-              font-weight: 500;
-              color: #6b7280;
-            }
-
-            .cms-dashboard__empty {
-              margin: 0;
-              padding: 1rem 1.15rem;
-              border-radius: 0.9rem;
-              background: #ffffff;
-              color: #6b7280;
-              font-size: 0.95rem;
-              box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-            }
-
-            .cms-dashboard__footer {
-              margin-top: 0.5rem;
-              display: grid;
-              gap: 0.75rem;
-              grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            }
-
-            .cms-dashboard__secondary {
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              gap: 0.5rem;
-              padding: 0.85rem 1.15rem;
-              border-radius: 0.9rem;
-              border: 1px solid #d1d5db;
-              background: #ffffff;
-              font-size: 0.95rem;
-              font-weight: 600;
-              cursor: pointer;
-              color: #111827;
-              box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-              transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-            }
-
-            .cms-dashboard__secondary:hover,
-            .cms-dashboard__secondary:focus {
-              transform: translateY(-1px);
-              border-color: #9ca3af;
-              box-shadow: 0 10px 20px rgba(15, 23, 42, 0.1);
-            }
-
-            .cms-dashboard__loading {
-              font-size: 0.9rem;
-              color: #6b7280;
-            }
-
-            @media (max-width: 520px) {
-              .cms-dashboard {
-                padding: 2rem 1.15rem 2.5rem;
-              }
-
-              .cms-dashboard__inner {
-                gap: 1.25rem;
-              }
-
-              .cms-dashboard__cta {
-                padding: 0.85rem 1.05rem;
-                font-size: 0.98rem;
-              }
-
-              .cms-dashboard__entry {
-                padding: 0.9rem 1rem;
-              }
-            }
-          `;
-
-          document.head.appendChild(style);
-        };
-
-        const ensureOverlay = () => {
-          if (state.overlay && document.body.contains(state.overlay)) {
-            return state.overlay;
-          }
-
-          ensureStyles();
-
-          const overlay = document.createElement("div");
-          overlay.className = "cms-dashboard";
-          overlay.setAttribute("role", "region");
-          overlay.setAttribute("aria-label", "Admin Portal Overview");
-          overlay.setAttribute("aria-hidden", "true");
-
-          overlay.innerHTML = `
-            <div class="cms-dashboard__inner">
-              <header>
-                <h1 class="cms-dashboard__title">Admin Portal</h1>
-              </header>
-              <button type="button" class="cms-dashboard__cta" data-dashboard-action="new">
-                <span aria-hidden="true">＋</span>
-                <span>New Post</span>
-              </button>
-              <section class="cms-dashboard__section" data-dashboard-section="drafts">
-                <h2 class="cms-dashboard__section-heading">Drafts</h2>
-                <div class="cms-dashboard__list" data-dashboard-list="drafts"></div>
-              </section>
-              <section class="cms-dashboard__section" data-dashboard-section="published">
-                <h2 class="cms-dashboard__section-heading">Published</h2>
-                <div class="cms-dashboard__list" data-dashboard-list="published"></div>
-              </section>
-              <div class="cms-dashboard__footer">
-                <button type="button" class="cms-dashboard__secondary" data-dashboard-action="media">Media</button>
-              </div>
-              <p class="cms-dashboard__loading" data-dashboard-loading hidden>Loading…</p>
-            </div>
-          `;
-
-          document.body.appendChild(overlay);
-          state.overlay = overlay;
-
-          overlay.querySelector("[data-dashboard-action='new']")?.addEventListener("click", () => {
-            navigateToHash("#/collections/blog_drafts/new");
-          });
-
-          overlay.querySelector("[data-dashboard-action='media']")?.addEventListener("click", () => {
-            navigateToHash("#/media");
-          });
-
-          return overlay;
-        };
-
-        const clearCollectionRetry = () => {
-          if (state.collectionRetryTimeout) {
-            clearTimeout(state.collectionRetryTimeout);
-            state.collectionRetryTimeout = null;
-          }
-        };
-
-        const hideDashboard = () => {
-          const overlay = ensureOverlay();
-          overlay.classList.remove("is-visible");
-          overlay.setAttribute("aria-hidden", "true");
-          state.visible = false;
-          clearCollectionRetry();
-          document.body.classList.remove("cms-dashboard-active");
-          const root = document.getElementById("nc-root");
-          if (root) {
-            root.classList.remove("cms-dashboard-hidden");
-          }
-        };
-
-        const showDashboard = () => {
-          const overlay = ensureOverlay();
-          overlay.classList.add("is-visible");
-          overlay.setAttribute("aria-hidden", "false");
-          state.visible = true;
-          renderLists();
-          document.body.classList.add("cms-dashboard-active");
-          const root = document.getElementById("nc-root");
-          if (root) {
-            root.classList.add("cms-dashboard-hidden");
-          }
-          if (ensureCollectionsReady()) {
-            refreshEntries();
-          } else {
-            setLoading(true);
-            if (!state.collectionRetryTimeout) {
-              state.collectionRetryTimeout = setTimeout(() => {
-                state.collectionRetryTimeout = null;
-                if (state.visible) {
-                  refreshEntries();
-                }
-              }, 500);
-            }
-          }
-        };
-
-        const navigateToHash = (hash) => {
-          hideDashboard();
-          requestAnimationFrame(() => {
-            window.location.hash = hash;
-          });
-        };
-
-        const formatDate = (value) => {
-          if (!value) {
-            return "";
-          }
-          const date = new Date(value);
-          if (Number.isNaN(date.getTime())) {
-            return "";
-          }
-          try {
-            return new Intl.DateTimeFormat(undefined, {
-              month: "short",
-              day: "numeric",
-              year: "numeric"
-            }).format(date);
-          } catch (error) {
-            return date.toISOString().split("T")[0];
-          }
-        };
-
-        const escapeHtml = (value) => {
-          if (typeof value !== "string") {
-            return value;
-          }
-          return value
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-        };
-
-        const toArray = (value) => {
-          if (!value) {
-            return [];
-          }
-
-          if (Array.isArray(value)) {
-            return value;
-          }
-
-          if (typeof value.toArray === "function") {
-            return value.toArray();
-          }
-
-          if (typeof value.toJS === "function") {
-            return value.toJS();
-          }
-
-          if (typeof value.forEach === "function") {
-            const result = [];
-            value.forEach((item) => {
-              result.push(item);
-            });
-            return result;
-          }
-
-          return [value];
-        };
-
-        const readValue = (source, key) => {
-          if (!source) {
-            return undefined;
-          }
-
-          if (typeof source.get === "function") {
-            return source.get(key);
-          }
-
-          return source[key];
-        };
-
-        const toPlainData = (data) => {
-          if (data == null) {
-            return {};
-          }
-
-          if (typeof data.toJS === "function") {
-            return data.toJS();
-          }
-
-          if (typeof data.toJSON === "function") {
-            return data.toJSON();
-          }
-
-          if (typeof data.get === "function" && typeof data.forEach === "function") {
-            const result = {};
-            data.forEach((value, key) => {
-              result[key] = toPlainData(value);
-            });
-            return result;
-          }
-
-          return data;
-        };
-
-        const getEntryData = (entry) => {
-          const data = readValue(entry, "data");
-          if (data == null) {
-            return {};
-          }
-          return toPlainData(data);
-        };
-
-        const interpretDraftFlag = (value) => {
-          if (value === true || value === false) {
-            return value;
-          }
-
-          if (typeof value === "string") {
-            const normalized = value.trim().toLowerCase();
-            if (normalized === "true") {
-              return true;
-            }
-            if (normalized === "false") {
-              return false;
-            }
-          }
-
-          return null;
-        };
-
-        const normalizeSlug = (value) => {
-          if (value == null) {
-            return null;
-          }
-
-          const stringValue = String(value).trim();
-          if (!stringValue) {
-            return null;
-          }
-
-          const withoutFolders = stringValue.split(/\\|\//).pop() || stringValue;
-          const withoutExtension = withoutFolders.replace(/\.[^.]+$/, "");
-          return withoutExtension;
-        };
-
-        const getCollectionFolder = (collection) => {
-          if (!collection) {
-            return null;
-          }
-
-          try {
-            const folder = readValue(collection, "folder");
-            if (typeof folder === "string") {
-              return folder;
-            }
-          } catch (error) {
-            console.warn("[CMS Dashboard] Unable to read collection folder", error);
-          }
-
-          if (typeof collection.toJS === "function") {
-            const plain = collection.toJS();
-            if (plain && typeof plain.folder === "string") {
-              return plain.folder;
-            }
-          }
-
-          return null;
-        };
-
-        const removeCollectionFilters = (collection) => {
-          if (!collection) {
-            return null;
-          }
-
-          try {
-            if (typeof collection.delete === "function") {
-              let result = collection;
-              if (result.has && result.has("filter")) {
-                result = result.delete("filter");
-              }
-              if (result.has && result.has("filters")) {
-                result = result.delete("filters");
-              }
-              return result;
-            }
-          } catch (error) {
-            console.warn("[CMS Dashboard] Failed to strip collection filters", error);
-          }
-
-          const clone = { ...collection };
-          delete clone.filter;
-          delete clone.filters;
-          return clone;
-        };
-
-        const normalizeFilter = (filter) => {
-          if (!filter) {
-            return null;
-          }
-
-          const read = (value, key) => {
-            if (!value) {
-              return undefined;
-            }
-
-            if (typeof value.get === "function") {
-              return value.get(key);
-            }
-
-            return value[key];
-          };
-
-          const field = read(filter, "field");
-          if (!field) {
-            return null;
-          }
-
-          return {
-            field: String(field),
-            value: read(filter, "value")
-          };
-        };
-
-        const getCollectionFilters = (collection) => {
-          if (!collection) {
-            return [];
-          }
-
-          const filters = [];
-
-          try {
-            const singleFilter = normalizeFilter(readValue(collection, "filter"));
-            if (singleFilter) {
-              filters.push(singleFilter);
-            }
-
-            const multi = readValue(collection, "filters");
-            toArray(multi).forEach((item) => {
-              const normalized = normalizeFilter(item);
-              if (normalized) {
-                filters.push(normalized);
-              }
-            });
-          } catch (error) {
-            console.error("[CMS Dashboard] Failed to normalize collection filters", error);
-          }
-
-          return filters;
-        };
-
-        const getNestedValue = (source, path) => {
-          if (!path) {
-            return undefined;
-          }
-
-          const parts = String(path)
-            .split(".")
-            .map((segment) => segment.trim())
-            .filter(Boolean);
-
-          if (parts.length === 0) {
-            return undefined;
-          }
-
-          let current = source;
-          for (const part of parts) {
-            if (current == null) {
-              return undefined;
-            }
-
-            if (typeof current.get === "function") {
-              current = current.get(part);
-            } else {
-              current = current[part];
-            }
-          }
-
-          return current;
-        };
-
-        const compareFilterValue = (entryValue, expected) => {
-          if (Array.isArray(entryValue)) {
-            return entryValue.some((item) => compareFilterValue(item, expected));
-          }
-
-          if (typeof expected === "boolean") {
-            const normalizedEntry = interpretDraftFlag(entryValue);
-            if (normalizedEntry == null) {
-              return expected === false;
-            }
-            return normalizedEntry === expected;
-          }
-
-          if (entryValue == null) {
-            return expected == null;
-          }
-
-          if (typeof entryValue === "object") {
-            return false;
-          }
-
-          return String(entryValue) === String(expected);
-        };
-
-        const entryMatchesCollectionFilters = (entry, collection) => {
-          const filters = getCollectionFilters(collection);
-          if (filters.length === 0) {
-            return true;
-          }
-
-          const data = getEntryData(entry);
-          return filters.every((filter) => {
-            const value = getNestedValue(data, filter.field);
-            return compareFilterValue(value, filter.value);
-          });
-        };
-
-        const toPlainEntry = (entry, fallbackCollection, fallbackDraft) => {
-          if (!entry) {
-            return null;
-          }
-
-          const dataValue = (() => {
-            const data = getEntryData(entry);
-            if (!data) {
-              return {};
-            }
-            return data;
-          })();
-
-          const slug = normalizeSlug(
-            readValue(entry, "slug") ||
-              readValue(entry, "path") ||
-              readValue(entry, "file") ||
-              (dataValue && dataValue.slug) ||
-              null
-          );
-
-          const title =
-            dataValue?.title ||
-            readValue(entry, "label") ||
-            (slug ? slug.replace(/[-_]/g, " ") : "Untitled Post");
-
-          const date =
-            dataValue?.date || readValue(entry, "updatedOn") || readValue(entry, "updated_at") || null;
-
-          const draftFlag = interpretDraftFlag(dataValue?.draft);
-          const fallbackIsDraft =
-            typeof fallbackDraft === "boolean"
-              ? fallbackDraft
-              : fallbackCollection === "blog_drafts"
-                ? true
-                : fallbackCollection === "blog_published"
-                  ? false
-                  : null;
-          const isDraft = draftFlag != null ? draftFlag : fallbackIsDraft != null ? fallbackIsDraft : false;
-
-          return {
-            slug,
-            title,
-            date,
-            isDraft,
-            collection:
-              readValue(entry, "collection") || dataValue?.collection || fallbackCollection || null
-          };
-        };
-
-        const dedupeEntriesBySlug = (entries) => {
-          const seen = new Set();
-          return entries.filter((entry) => {
-            const key = entry?.slug || `${entry?.collection || ""}:${entry?.title || ""}`;
-            if (seen.has(key)) {
-              return false;
-            }
-            seen.add(key);
-            return true;
-          });
-        };
-
-        const sortEntries = (entries) => {
-          const sorted = entries.slice();
-          sorted.sort((a, b) => {
-            const dateA = a.date ? new Date(a.date).getTime() : 0;
-            const dateB = b.date ? new Date(b.date).getTime() : 0;
-            if (dateA !== dateB) {
-              return dateB - dateA;
-            }
-            const titleA = (a.title || "").toString();
-            const titleB = (b.title || "").toString();
-            return titleA.localeCompare(titleB);
-          });
-          return sorted;
-        };
-
-        const renderSection = (section, entries) => {
-          const overlay = ensureOverlay();
-          const container = overlay.querySelector(`[data-dashboard-list='${section}']`);
-          if (!container) {
-            return;
-          }
-
-          container.innerHTML = "";
-
-          const sortedEntries = sortEntries(entries);
-
-          if (sortedEntries.length === 0) {
-            const empty = document.createElement("p");
-            empty.className = "cms-dashboard__empty";
-            empty.textContent = section === "drafts" ? "No drafts yet." : "No published posts yet.";
-            container.appendChild(empty);
-            return;
-          }
-
-          sortedEntries.forEach((entry) => {
-            const item = document.createElement("button");
-            item.type = "button";
-            item.className = "cms-dashboard__entry";
-            const title = escapeHtml(entry.title || "Untitled Post");
-            const meta = formatDate(entry.date);
-            item.innerHTML = `
-              <span class="cms-dashboard__entry-title">${title}</span>
-              ${meta ? `<span class="cms-dashboard__entry-meta">${meta}</span>` : ""}
-            `;
-            item.addEventListener("click", () => {
-              if (!entry.slug) {
-                return;
-              }
-              const collection = section === "drafts" ? "blog_drafts" : "blog_published";
-              const encodedSlug = encodeURIComponent(entry.slug);
-              navigateToHash(`#/collections/${collection}/entries/${encodedSlug}`);
-            });
-            container.appendChild(item);
-          });
-        };
-
-        const setLoading = (loading) => {
-          state.loading = loading;
-          const overlay = ensureOverlay();
-          const indicator = overlay.querySelector("[data-dashboard-loading]");
-          if (!indicator) {
-            return;
-          }
-          indicator.hidden = !loading;
-        };
-
-        function renderLists() {
-          renderSection("drafts", state.drafts);
-          renderSection("published", state.published);
-        }
-
-        const toPlainCollection = (collection) => {
-          if (!collection) {
-            return null;
-          }
-
-          if (typeof collection.toJS === "function") {
-            return collection.toJS();
-          }
-
-          if (typeof collection.toJSON === "function") {
-            return collection.toJSON();
-          }
-
-          return collection;
-        };
-
-        const getCollectionConfig = (collectionName) => {
-          if (!collectionName) {
-            return null;
-          }
-
-          if (typeof cms.getCollection === "function") {
-            const direct = cms.getCollection(collectionName);
-            if (direct) {
-              return direct;
-            }
-          }
-
-          const store = cms.store;
-          if (store && typeof store.getState === "function") {
-            const state = store.getState();
-            const collections = state && state.collections;
-            if (collections) {
-              if (typeof collections.get === "function") {
-                return collections.get(collectionName) || null;
-              }
-
-              if (Array.isArray(collections)) {
-                return collections.find((item) => {
-                  if (!item) return false;
-                  if (typeof item.get === "function") {
-                    return item.get("name") === collectionName;
-                  }
-                  return item.name === collectionName;
-                }) || null;
-              }
-            }
-          }
-
-          return null;
-        };
-
-        const stopCollectionWatcher = () => {
-          if (state.collectionUnsubscribe) {
-            const unsubscribe = state.collectionUnsubscribe;
-            state.collectionUnsubscribe = null;
-            try {
-              unsubscribe();
-            } catch (error) {
-              console.error("Failed to detach collection watcher", error);
-            }
-          }
-        };
-
-        const collectionsAreReady = () =>
-          requiredCollections.every((name) => {
-            try {
-              return Boolean(getCollectionConfig(name));
-            } catch (error) {
-              console.error(`Failed to evaluate collection readiness for ${name}:`, error);
-              return false;
-            }
-          });
-
-        function ensureCollectionsReady() {
-          if (collectionsAreReady()) {
-            state.collectionsReady = true;
-            stopCollectionWatcher();
-            return true;
-          }
-
-          state.collectionsReady = false;
-
-          const store = cms.store;
-          if (store && typeof store.subscribe === "function" && !state.collectionUnsubscribe) {
-            const unsubscribe = store.subscribe(() => {
-              if (!state.collectionsReady && collectionsAreReady()) {
-                state.collectionsReady = true;
-                stopCollectionWatcher();
-                if (state.visible) {
-                  refreshEntries();
-                }
-              }
-            });
-            state.collectionUnsubscribe = unsubscribe;
-          }
-
-          return false;
-        }
-
-        const loadCollectionEntries = async (collectionName) => {
-          if (!collectionName) {
-            return [];
-          }
-
-          const collection = getCollectionConfig(collectionName);
-          if (!collection) {
-            return [];
-          }
-
-          const collectionKey =
-            typeof collection.get === "function"
-              ? collection.get("name") || collectionName
-              : collection?.name || collectionName;
-
-          const collectionFolder = getCollectionFolder(collection);
-          const filters = getCollectionFilters(collection);
-          const unfilteredCollection = removeCollectionFilters(collection);
-
-          if (!collectionFolder) {
-            console.warn(`(CMS Dashboard) No folder configured for ${collectionKey}`);
-          }
-
-          console.info("[CMS Dashboard] Loading collection", {
-            name: collectionKey,
-            folder: collectionFolder,
-            filters,
-            nodeEnv: window.process?.env?.NODE_ENV
-          });
-
-          const store = cms.store;
-          const actions = cms.actions;
-
-          let storeEntries = [];
-
-          if (store && typeof store.dispatch === "function" && typeof store.getState === "function") {
-            const loadEntriesAction = actions && typeof actions.loadEntries === "function" ? actions.loadEntries : null;
-            if (loadEntriesAction) {
-              try {
-                const dispatchResult = store.dispatch(loadEntriesAction(collection));
-                if (dispatchResult && typeof dispatchResult.then === "function") {
-                  await dispatchResult;
-                }
-              } catch (error) {
-                console.error(`Failed to dispatch loadEntries for ${collectionKey}:`, error);
-              }
-
-              try {
-                const stateSnapshot = store.getState();
-                const entriesState = stateSnapshot && stateSnapshot.entries;
-                if (entriesState && typeof entriesState.getIn === "function") {
-                  const ids = entriesState.getIn(["pages", collectionKey, "ids"]);
-                  const entrySlugs = toArray(ids);
-                  const rawEntries = entrySlugs
-                    .map((slug) => entriesState.getIn(["entities", `${collectionKey}.${slug}`]))
-                    .filter(Boolean);
-
-                  storeEntries = dedupeEntriesBySlug(
-                    rawEntries
-                      .map((entry) => toPlainEntry(entry, collectionKey, collectionName === "blog_drafts"))
-                      .filter(Boolean)
-                  );
-                }
-              } catch (error) {
-                console.error(`Failed to load entries for ${collectionKey} from store:`, error);
-              }
-            }
-          }
-
-          const backend = typeof cms.getBackend === "function" ? cms.getBackend() : null;
-          if (!backend) {
-            return storeEntries;
-          }
-
-          let backendEntries = [];
-
-          try {
-            const targetCollection = unfilteredCollection || collection;
-
-            if (typeof backend.listAllEntries === "function") {
-              const allResult = await backend.listAllEntries(targetCollection);
-              const normalized = Array.isArray(allResult)
-                ? allResult
-                : allResult?.toArray?.() || allResult?.toJS?.() || allResult;
-
-              if (normalized) {
-                backendEntries = toArray(normalized);
-              }
-            }
-
-            if (backendEntries.length === 0 && typeof backend.listEntries === "function") {
-              const result = await backend.listEntries(targetCollection);
-              const entries = Array.isArray(result?.entries)
-                ? result.entries
-                : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
-
-              if (entries) {
-                backendEntries = toArray(entries);
-              }
-
-              const cursor = result?.cursor;
-              if (cursor && typeof backend.traverseCursor === "function") {
-                let currentCursor = cursor;
-                let keepFetching = true;
-                while (keepFetching && currentCursor) {
-                  try {
-                    const next = await backend.traverseCursor(currentCursor, "next");
-                    const nextEntries = Array.isArray(next?.entries)
-                      ? next.entries
-                      : next?.entries?.toArray?.() || next?.entries?.toJS?.() || next?.entries;
-                    if (nextEntries && nextEntries.length > 0) {
-                      backendEntries.push(...toArray(nextEntries));
-                    }
-                    keepFetching = Boolean(next?.cursor && next.cursor !== currentCursor);
-                    currentCursor = next?.cursor;
-                  } catch (cursorError) {
-                    console.error("[CMS Dashboard] Failed to traverse cursor", cursorError);
-                    keepFetching = false;
-                  }
-                }
-              }
-            }
-          } catch (error) {
-            console.error(`Failed to load entries for ${collectionKey} from backend:`, error);
-          }
-
-          if (backendEntries.length === 0) {
-            return storeEntries;
-          }
-
-          const matchedEntries = backendEntries.filter((entry) => entryMatchesCollectionFilters(entry, collection));
-          const formatted = dedupeEntriesBySlug(
-            matchedEntries
-              .map((entry) => toPlainEntry(entry, collectionKey, collectionName === "blog_drafts"))
-              .filter(Boolean)
-          );
-
-          console.info("[CMS Dashboard] Collection load summary", {
-            name: collectionKey,
-            backendCount: backendEntries.length,
-            matchedCount: matchedEntries.length,
-            formattedCount: formatted.length,
-            sampleSlugs: formatted.slice(0, 3).map((entry) => entry.slug)
-          });
-
-          if (storeEntries.length > 0) {
-            return dedupeEntriesBySlug([...storeEntries, ...formatted]);
-          }
-
-          return formatted;
-        };
-
-        async function refreshEntries() {
-          clearCollectionRetry();
-
-          if (!state.visible) {
-            return;
-          }
-
-          if (!ensureCollectionsReady()) {
-            setLoading(true);
-            if (!state.collectionRetryTimeout) {
-              state.collectionRetryTimeout = setTimeout(() => {
-                state.collectionRetryTimeout = null;
-                if (state.visible) {
-                  refreshEntries();
-                }
-              }, 500);
-            }
-            return;
-          }
-
-          const currentToken = ++state.refreshToken;
-          setLoading(true);
-
-          try {
-            const entriesByCollection = await Promise.all(
-              requiredCollections.map((name) => loadCollectionEntries(name))
-            );
-
-            if (currentToken !== state.refreshToken || !state.visible) {
-              return;
-            }
-
-            const flattened =
-              typeof entriesByCollection.flat === "function"
-                ? entriesByCollection.flat()
-                : [].concat(...entriesByCollection);
-
-            const drafts = dedupeEntriesBySlug(
-              flattened.filter((entry) => entry && entry.isDraft === true)
-            );
-
-            const published = dedupeEntriesBySlug(
-              flattened.filter((entry) => entry && entry.isDraft === false)
-            );
-
-            state.drafts = drafts;
-            state.published = published;
-            renderLists();
-            console.info("[CMS Dashboard] Refresh complete", {
-              drafts: drafts.length,
-              published: published.length,
-              visible: state.visible
-            });
-          } catch (error) {
-            console.error("Failed to refresh dashboard entries", error);
-          } finally {
-            if (currentToken === state.refreshToken) {
-              setLoading(false);
-            }
-          }
-        }
-
-        const handleRouteChange = () => {
-          const hash = window.location.hash || "";
-          const normalized = hash.replace(/#/, "#");
-          const entryRoute = /^#\/collections\/[^/]+\/(entries|new)/i;
-          const mediaRoute = /^#\/media/i;
-          const workflowRoute = /^#\/workflow/i;
-          const isEntryView = entryRoute.test(normalized) || mediaRoute.test(normalized) || workflowRoute.test(normalized);
-          const isCollectionsRoot =
-            normalized === "" ||
-            normalized === "#" ||
-            normalized === "#/" ||
-            /^#\/collections(\/[^/]+)?\/?$/i.test(normalized);
-
-          if (isEntryView) {
-            hideDashboard();
-          } else if (isCollectionsRoot) {
-            showDashboard();
-          }
-        };
-
-        const handleCmsEvents = () => {
-          if (!cms.registerEventListener) {
-            return;
-          }
-
-          const events = [
-            "entryPersisted",
-            "entryDeleted",
-            "entryDraftCreated",
-            "entryDraftDiscarded"
-          ];
-
-          events.forEach((name) => {
-            cms.registerEventListener({
-              name,
-              handler: () => {
-                if (state.visible) {
-                  refreshEntries();
-                }
-              }
-            });
-          });
-        };
-
-        const init = () => {
-          ensureOverlay();
-          ensureCollectionsReady();
-          handleRouteChange();
-          window.addEventListener("hashchange", handleRouteChange, { passive: true });
-          handleCmsEvents();
-        };
-
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", init, { once: true });
-        } else {
-          init();
-        }
-      }
-
     </script>
   </body>
 </html>
