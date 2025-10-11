@@ -29,12 +29,14 @@
           window.CMS.init();
           setupIdentityUI();
           setupMobileEnhancements();
+          setupCustomDashboard();
           return;
         }
         if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
           window.NetlifyCmsApp.init();
           setupIdentityUI();
           setupMobileEnhancements();
+          setupCustomDashboard();
           return;
         }
         const message = "Netlify CMS failed to load. Check the browser console for details.";
@@ -216,6 +218,597 @@
             setCollectionsOpen(false, state);
           }
         });
+      }
+
+      function setupCustomDashboard() {
+        const cms = window.CMS;
+        if (!cms) {
+          return;
+        }
+
+        const state = {
+          overlay: null,
+          drafts: [],
+          published: [],
+          sortMode: "newest",
+          loading: false,
+          refreshToken: 0,
+          visible: false
+        };
+
+        const ensureStyles = () => {
+          if (document.getElementById("cms-dashboard-styles")) {
+            return;
+          }
+
+          const style = document.createElement("style");
+          style.id = "cms-dashboard-styles";
+          style.textContent = `
+            body.cms-dashboard-active {
+              background: #f5f5f5;
+            }
+
+            .cms-dashboard-hidden {
+              position: absolute !important;
+              width: 1px !important;
+              height: 1px !important;
+              overflow: hidden !important;
+              clip: rect(0 0 0 0) !important;
+              white-space: nowrap !important;
+            }
+
+            .cms-dashboard {
+              position: relative;
+              display: none;
+              min-height: 100vh;
+              padding: 2.5rem 1.5rem 3.5rem;
+              box-sizing: border-box;
+              background: #f5f5f5;
+              color: #111827;
+              font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+            }
+
+            .cms-dashboard.is-visible {
+              display: flex;
+              flex-direction: column;
+              align-items: stretch;
+              gap: 1.5rem;
+            }
+
+            .cms-dashboard__inner {
+              width: min(480px, 100%);
+              margin: 0 auto;
+              display: flex;
+              flex-direction: column;
+              gap: 1.5rem;
+            }
+
+            .cms-dashboard__title {
+              font-size: clamp(2rem, 5vw, 2.5rem);
+              font-weight: 700;
+              margin: 0;
+            }
+
+            .cms-dashboard__cta {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              gap: 0.65rem;
+              padding: 0.9rem 1.25rem;
+              border-radius: 0.95rem;
+              font-size: 1rem;
+              font-weight: 600;
+              border: none;
+              cursor: pointer;
+              background: #111827;
+              color: #ffffff;
+              box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+              transition: transform 0.15s ease, box-shadow 0.15s ease;
+            }
+
+            .cms-dashboard__cta:hover,
+            .cms-dashboard__cta:focus {
+              transform: translateY(-1px);
+              box-shadow: 0 16px 30px rgba(15, 23, 42, 0.25);
+            }
+
+            .cms-dashboard__section {
+              display: flex;
+              flex-direction: column;
+              gap: 0.75rem;
+            }
+
+            .cms-dashboard__section-heading {
+              font-size: 1rem;
+              font-weight: 600;
+              margin: 0;
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+              color: #374151;
+            }
+
+            .cms-dashboard__list {
+              display: flex;
+              flex-direction: column;
+              gap: 0.85rem;
+            }
+
+            .cms-dashboard__entry {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 0.35rem;
+              text-align: left;
+              border: none;
+              padding: 1rem 1.15rem;
+              border-radius: 0.9rem;
+              background: #ffffff;
+              box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+              font-size: 1rem;
+              line-height: 1.4;
+              font-weight: 500;
+              color: inherit;
+              cursor: pointer;
+              transition: transform 0.12s ease, box-shadow 0.12s ease;
+            }
+
+            .cms-dashboard__entry:hover,
+            .cms-dashboard__entry:focus {
+              transform: translateY(-1px);
+              box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+            }
+
+            .cms-dashboard__entry-title {
+              font-size: 1.02rem;
+              font-weight: 600;
+              color: #111827;
+              word-break: break-word;
+            }
+
+            .cms-dashboard__entry-meta {
+              font-size: 0.82rem;
+              font-weight: 500;
+              color: #6b7280;
+            }
+
+            .cms-dashboard__empty {
+              margin: 0;
+              padding: 1rem 1.15rem;
+              border-radius: 0.9rem;
+              background: #ffffff;
+              color: #6b7280;
+              font-size: 0.95rem;
+              box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+            }
+
+            .cms-dashboard__footer {
+              margin-top: 0.5rem;
+              display: grid;
+              gap: 0.75rem;
+              grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+
+            .cms-dashboard__secondary {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              gap: 0.5rem;
+              padding: 0.85rem 1.15rem;
+              border-radius: 0.9rem;
+              border: 1px solid #d1d5db;
+              background: #ffffff;
+              font-size: 0.95rem;
+              font-weight: 600;
+              cursor: pointer;
+              color: #111827;
+              box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+              transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+            }
+
+            .cms-dashboard__secondary:hover,
+            .cms-dashboard__secondary:focus {
+              transform: translateY(-1px);
+              border-color: #9ca3af;
+              box-shadow: 0 10px 20px rgba(15, 23, 42, 0.1);
+            }
+
+            .cms-dashboard__loading {
+              font-size: 0.9rem;
+              color: #6b7280;
+            }
+
+            @media (max-width: 520px) {
+              .cms-dashboard {
+                padding: 2rem 1.15rem 2.5rem;
+              }
+
+              .cms-dashboard__inner {
+                gap: 1.25rem;
+              }
+
+              .cms-dashboard__cta {
+                padding: 0.85rem 1.05rem;
+                font-size: 0.98rem;
+              }
+
+              .cms-dashboard__entry {
+                padding: 0.9rem 1rem;
+              }
+            }
+          `;
+
+          document.head.appendChild(style);
+        };
+
+        const ensureOverlay = () => {
+          if (state.overlay && document.body.contains(state.overlay)) {
+            return state.overlay;
+          }
+
+          ensureStyles();
+
+          const overlay = document.createElement("div");
+          overlay.className = "cms-dashboard";
+          overlay.setAttribute("role", "region");
+          overlay.setAttribute("aria-label", "Admin Portal Overview");
+          overlay.setAttribute("aria-hidden", "true");
+
+          overlay.innerHTML = `
+            <div class="cms-dashboard__inner">
+              <header>
+                <h1 class="cms-dashboard__title">Admin Portal</h1>
+              </header>
+              <button type="button" class="cms-dashboard__cta" data-dashboard-action="new">
+                <span aria-hidden="true">＋</span>
+                <span>New Post</span>
+              </button>
+              <section class="cms-dashboard__section" data-dashboard-section="drafts">
+                <h2 class="cms-dashboard__section-heading">Drafts</h2>
+                <div class="cms-dashboard__list" data-dashboard-list="drafts"></div>
+              </section>
+              <section class="cms-dashboard__section" data-dashboard-section="published">
+                <h2 class="cms-dashboard__section-heading">Published</h2>
+                <div class="cms-dashboard__list" data-dashboard-list="published"></div>
+              </section>
+              <div class="cms-dashboard__footer">
+                <button type="button" class="cms-dashboard__secondary" data-dashboard-action="sort"></button>
+                <button type="button" class="cms-dashboard__secondary" data-dashboard-action="media">Media</button>
+              </div>
+              <p class="cms-dashboard__loading" data-dashboard-loading hidden>Loading…</p>
+            </div>
+          `;
+
+          document.body.appendChild(overlay);
+          state.overlay = overlay;
+
+          overlay.querySelector("[data-dashboard-action='new']")?.addEventListener("click", () => {
+            navigateToHash("#/collections/blog_drafts/new");
+          });
+
+          overlay.querySelector("[data-dashboard-action='media']")?.addEventListener("click", () => {
+            navigateToHash("#/media");
+          });
+
+          overlay.querySelector("[data-dashboard-action='sort']")?.addEventListener("click", () => {
+            state.sortMode = state.sortMode === "alphabetical" ? "newest" : "alphabetical";
+            renderLists();
+          });
+
+          return overlay;
+        };
+
+        const hideDashboard = () => {
+          const overlay = ensureOverlay();
+          overlay.classList.remove("is-visible");
+          overlay.setAttribute("aria-hidden", "true");
+          state.visible = false;
+          document.body.classList.remove("cms-dashboard-active");
+          const root = document.getElementById("nc-root");
+          if (root) {
+            root.classList.remove("cms-dashboard-hidden");
+          }
+        };
+
+        const showDashboard = () => {
+          const overlay = ensureOverlay();
+          overlay.classList.add("is-visible");
+          overlay.setAttribute("aria-hidden", "false");
+          state.visible = true;
+          document.body.classList.add("cms-dashboard-active");
+          const root = document.getElementById("nc-root");
+          if (root) {
+            root.classList.add("cms-dashboard-hidden");
+          }
+          updateSortLabel();
+          refreshEntries();
+        };
+
+        const navigateToHash = (hash) => {
+          hideDashboard();
+          requestAnimationFrame(() => {
+            window.location.hash = hash;
+          });
+        };
+
+        const formatDate = (value) => {
+          if (!value) {
+            return "";
+          }
+          const date = new Date(value);
+          if (Number.isNaN(date.getTime())) {
+            return "";
+          }
+          try {
+            return new Intl.DateTimeFormat(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric"
+            }).format(date);
+          } catch (error) {
+            return date.toISOString().split("T")[0];
+          }
+        };
+
+        const escapeHtml = (value) => {
+          if (typeof value !== "string") {
+            return value;
+          }
+          return value
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        };
+
+        const toPlainEntry = (entry) => {
+          if (!entry) {
+            return null;
+          }
+
+          const read = (source, key) => {
+            if (!source) return undefined;
+            if (typeof source.get === "function") {
+              return source.get(key);
+            }
+            return source[key];
+          };
+
+          const dataValue = (() => {
+            const data = read(entry, "data");
+            if (!data) return {};
+            if (typeof data.toJS === "function") {
+              return data.toJS();
+            }
+            if (typeof data.toJSON === "function") {
+              return data.toJSON();
+            }
+            if (typeof data.get === "function") {
+              const result = {};
+              data.forEach((value, key) => {
+                result[key] = value;
+              });
+              return result;
+            }
+            return data;
+          })();
+
+          const slug =
+            read(entry, "slug") ||
+            read(entry, "path") ||
+            read(entry, "file") ||
+            (dataValue && dataValue.slug) ||
+            null;
+
+          const title =
+            dataValue?.title ||
+            read(entry, "label") ||
+            (slug ? slug.replace(/[-_]/g, " ") : "Untitled Post");
+
+          const date = dataValue?.date || read(entry, "updatedOn") || read(entry, "updated_at") || null;
+
+          return {
+            slug,
+            title,
+            date,
+            collection: read(entry, "collection") || dataValue?.collection || null
+          };
+        };
+
+        const sortEntries = (entries) => {
+          const sorted = entries.slice();
+          if (state.sortMode === "alphabetical") {
+            sorted.sort((a, b) => a.title.localeCompare(b.title));
+          } else {
+            sorted.sort((a, b) => {
+              const dateA = a.date ? new Date(a.date).getTime() : 0;
+              const dateB = b.date ? new Date(b.date).getTime() : 0;
+              if (dateA && dateB && dateA !== dateB) {
+                return dateB - dateA;
+              }
+              return a.title.localeCompare(b.title);
+            });
+          }
+          return sorted;
+        };
+
+        const updateSortLabel = () => {
+          const overlay = ensureOverlay();
+          const button = overlay.querySelector("[data-dashboard-action='sort']");
+          if (button) {
+            button.textContent = state.sortMode === "alphabetical" ? "Sort: A–Z" : "Sort: Newest";
+          }
+        };
+
+        const renderSection = (section, entries) => {
+          const overlay = ensureOverlay();
+          const container = overlay.querySelector(`[data-dashboard-list='${section}']`);
+          if (!container) {
+            return;
+          }
+
+          container.innerHTML = "";
+
+          const sortedEntries = sortEntries(entries);
+
+          if (sortedEntries.length === 0) {
+            const empty = document.createElement("p");
+            empty.className = "cms-dashboard__empty";
+            empty.textContent = section === "drafts" ? "No drafts yet." : "No published posts yet.";
+            container.appendChild(empty);
+            return;
+          }
+
+          sortedEntries.forEach((entry) => {
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = "cms-dashboard__entry";
+            const title = escapeHtml(entry.title || "Untitled Post");
+            const meta = formatDate(entry.date);
+            item.innerHTML = `
+              <span class="cms-dashboard__entry-title">${title}</span>
+              ${meta ? `<span class="cms-dashboard__entry-meta">${meta}</span>` : ""}
+            `;
+            item.addEventListener("click", () => {
+              if (!entry.slug) {
+                return;
+              }
+              const collection = section === "drafts" ? "blog_drafts" : "blog_published";
+              const encodedSlug = encodeURIComponent(entry.slug);
+              navigateToHash(`#/collections/${collection}/entries/${encodedSlug}`);
+            });
+            container.appendChild(item);
+          });
+        };
+
+        const setLoading = (loading) => {
+          state.loading = loading;
+          const overlay = ensureOverlay();
+          const indicator = overlay.querySelector("[data-dashboard-loading]");
+          if (!indicator) {
+            return;
+          }
+          indicator.hidden = !loading;
+        };
+
+        const renderLists = () => {
+          updateSortLabel();
+          renderSection("drafts", state.drafts);
+          renderSection("published", state.published);
+        };
+
+        const loadCollectionEntries = async (collectionName) => {
+          const collection = typeof cms.getCollection === "function" ? cms.getCollection(collectionName) : null;
+          if (!collection) {
+            return [];
+          }
+
+          const backend = typeof cms.getBackend === "function" ? cms.getBackend() : null;
+          if (!backend || typeof backend.listEntries !== "function") {
+            return [];
+          }
+
+          try {
+            const result = await backend.listEntries(collection);
+            const entries = Array.isArray(result?.entries)
+              ? result.entries
+              : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
+
+            if (!entries) {
+              return [];
+            }
+
+            return entries
+              .map((entry) => toPlainEntry(entry))
+              .filter(Boolean);
+          } catch (error) {
+            console.error(`Failed to load entries for ${collectionName}:`, error);
+            return [];
+          }
+        };
+
+        const refreshEntries = async () => {
+          if (!state.visible) {
+            return;
+          }
+
+          const currentToken = ++state.refreshToken;
+          setLoading(true);
+
+          const [drafts, published] = await Promise.all([
+            loadCollectionEntries("blog_drafts"),
+            loadCollectionEntries("blog_published")
+          ]);
+
+          if (currentToken !== state.refreshToken || !state.visible) {
+            if (currentToken === state.refreshToken) {
+              setLoading(false);
+            }
+            return;
+          }
+
+          state.drafts = drafts;
+          state.published = published;
+          setLoading(false);
+          renderLists();
+        };
+
+        const handleRouteChange = () => {
+          const hash = window.location.hash || "";
+          const normalized = hash.replace(/#/, "#");
+          const entryRoute = /^#\/collections\/[^/]+\/(entries|new)/i;
+          const mediaRoute = /^#\/media/i;
+          const workflowRoute = /^#\/workflow/i;
+          const isEntryView = entryRoute.test(normalized) || mediaRoute.test(normalized) || workflowRoute.test(normalized);
+          const isCollectionsRoot =
+            normalized === "" ||
+            normalized === "#" ||
+            normalized === "#/" ||
+            /^#\/collections(\/[^/]+)?\/?$/i.test(normalized);
+
+          if (isEntryView) {
+            hideDashboard();
+          } else if (isCollectionsRoot) {
+            showDashboard();
+          }
+        };
+
+        const handleCmsEvents = () => {
+          if (!cms.registerEventListener) {
+            return;
+          }
+
+          const events = [
+            "entryPersisted",
+            "entryDeleted",
+            "entryDraftCreated",
+            "entryDraftDiscarded"
+          ];
+
+          events.forEach((name) => {
+            cms.registerEventListener({
+              name,
+              handler: () => {
+                if (state.visible) {
+                  refreshEntries();
+                }
+              }
+            });
+          });
+        };
+
+        const init = () => {
+          ensureOverlay();
+          handleRouteChange();
+          window.addEventListener("hashchange", handleRouteChange, { passive: true });
+          handleCmsEvents();
+        };
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init, { once: true });
+        } else {
+          init();
+        }
       }
 
       function applyMobileStyles(element, styles) {
