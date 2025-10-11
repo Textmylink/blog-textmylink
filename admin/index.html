@@ -199,6 +199,12 @@
           return;
         }
 
+        console.info("[CMS Dashboard] Initializing custom dashboard", {
+          nodeEnv: window.process?.env?.NODE_ENV,
+          manualInit: window.CMS_MANUAL_INIT,
+          requiredCollections
+        });
+
         const state = {
           overlay: null,
           drafts: [],
@@ -657,6 +663,178 @@
           return withoutExtension;
         };
 
+        const getCollectionFolder = (collection) => {
+          if (!collection) {
+            return null;
+          }
+
+          try {
+            const folder = readValue(collection, "folder");
+            if (typeof folder === "string") {
+              return folder;
+            }
+          } catch (error) {
+            console.warn("[CMS Dashboard] Unable to read collection folder", error);
+          }
+
+          if (typeof collection.toJS === "function") {
+            const plain = collection.toJS();
+            if (plain && typeof plain.folder === "string") {
+              return plain.folder;
+            }
+          }
+
+          return null;
+        };
+
+        const removeCollectionFilters = (collection) => {
+          if (!collection) {
+            return null;
+          }
+
+          try {
+            if (typeof collection.delete === "function") {
+              let result = collection;
+              if (result.has && result.has("filter")) {
+                result = result.delete("filter");
+              }
+              if (result.has && result.has("filters")) {
+                result = result.delete("filters");
+              }
+              return result;
+            }
+          } catch (error) {
+            console.warn("[CMS Dashboard] Failed to strip collection filters", error);
+          }
+
+          const clone = { ...collection };
+          delete clone.filter;
+          delete clone.filters;
+          return clone;
+        };
+
+        const normalizeFilter = (filter) => {
+          if (!filter) {
+            return null;
+          }
+
+          const read = (value, key) => {
+            if (!value) {
+              return undefined;
+            }
+
+            if (typeof value.get === "function") {
+              return value.get(key);
+            }
+
+            return value[key];
+          };
+
+          const field = read(filter, "field");
+          if (!field) {
+            return null;
+          }
+
+          return {
+            field: String(field),
+            value: read(filter, "value")
+          };
+        };
+
+        const getCollectionFilters = (collection) => {
+          if (!collection) {
+            return [];
+          }
+
+          const filters = [];
+
+          try {
+            const singleFilter = normalizeFilter(readValue(collection, "filter"));
+            if (singleFilter) {
+              filters.push(singleFilter);
+            }
+
+            const multi = readValue(collection, "filters");
+            toArray(multi).forEach((item) => {
+              const normalized = normalizeFilter(item);
+              if (normalized) {
+                filters.push(normalized);
+              }
+            });
+          } catch (error) {
+            console.error("[CMS Dashboard] Failed to normalize collection filters", error);
+          }
+
+          return filters;
+        };
+
+        const getNestedValue = (source, path) => {
+          if (!path) {
+            return undefined;
+          }
+
+          const parts = String(path)
+            .split(".")
+            .map((segment) => segment.trim())
+            .filter(Boolean);
+
+          if (parts.length === 0) {
+            return undefined;
+          }
+
+          let current = source;
+          for (const part of parts) {
+            if (current == null) {
+              return undefined;
+            }
+
+            if (typeof current.get === "function") {
+              current = current.get(part);
+            } else {
+              current = current[part];
+            }
+          }
+
+          return current;
+        };
+
+        const compareFilterValue = (entryValue, expected) => {
+          if (Array.isArray(entryValue)) {
+            return entryValue.some((item) => compareFilterValue(item, expected));
+          }
+
+          if (typeof expected === "boolean") {
+            const normalizedEntry = interpretDraftFlag(entryValue);
+            if (normalizedEntry == null) {
+              return expected === false;
+            }
+            return normalizedEntry === expected;
+          }
+
+          if (entryValue == null) {
+            return expected == null;
+          }
+
+          if (typeof entryValue === "object") {
+            return false;
+          }
+
+          return String(entryValue) === String(expected);
+        };
+
+        const entryMatchesCollectionFilters = (entry, collection) => {
+          const filters = getCollectionFilters(collection);
+          if (filters.length === 0) {
+            return true;
+          }
+
+          const data = getEntryData(entry);
+          return filters.every((filter) => {
+            const value = getNestedValue(data, filter.field);
+            return compareFilterValue(value, filter.value);
+          });
+        };
+
         const toPlainEntry = (entry, fallbackCollection, fallbackDraft) => {
           if (!entry) {
             return null;
@@ -905,6 +1083,21 @@
               ? collection.get("name") || collectionName
               : collection?.name || collectionName;
 
+          const collectionFolder = getCollectionFolder(collection);
+          const filters = getCollectionFilters(collection);
+          const unfilteredCollection = removeCollectionFilters(collection);
+
+          if (!collectionFolder) {
+            console.warn(`(CMS Dashboard) No folder configured for ${collectionKey}`);
+          }
+
+          console.info("[CMS Dashboard] Loading collection", {
+            name: collectionKey,
+            folder: collectionFolder,
+            filters,
+            nodeEnv: window.process?.env?.NODE_ENV
+          });
+
           const store = cms.store;
           const actions = cms.actions;
 
@@ -952,8 +1145,10 @@
           let backendEntries = [];
 
           try {
+            const targetCollection = unfilteredCollection || collection;
+
             if (typeof backend.listAllEntries === "function") {
-              const allResult = await backend.listAllEntries(collection);
+              const allResult = await backend.listAllEntries(targetCollection);
               const normalized = Array.isArray(allResult)
                 ? allResult
                 : allResult?.toArray?.() || allResult?.toJS?.() || allResult;
@@ -964,13 +1159,35 @@
             }
 
             if (backendEntries.length === 0 && typeof backend.listEntries === "function") {
-              const result = await backend.listEntries(collection);
+              const result = await backend.listEntries(targetCollection);
               const entries = Array.isArray(result?.entries)
                 ? result.entries
                 : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
 
               if (entries) {
                 backendEntries = toArray(entries);
+              }
+
+              const cursor = result?.cursor;
+              if (cursor && typeof backend.traverseCursor === "function") {
+                let currentCursor = cursor;
+                let keepFetching = true;
+                while (keepFetching && currentCursor) {
+                  try {
+                    const next = await backend.traverseCursor(currentCursor, "next");
+                    const nextEntries = Array.isArray(next?.entries)
+                      ? next.entries
+                      : next?.entries?.toArray?.() || next?.entries?.toJS?.() || next?.entries;
+                    if (nextEntries && nextEntries.length > 0) {
+                      backendEntries.push(...toArray(nextEntries));
+                    }
+                    keepFetching = Boolean(next?.cursor && next.cursor !== currentCursor);
+                    currentCursor = next?.cursor;
+                  } catch (cursorError) {
+                    console.error("[CMS Dashboard] Failed to traverse cursor", cursorError);
+                    keepFetching = false;
+                  }
+                }
               }
             }
           } catch (error) {
@@ -981,11 +1198,20 @@
             return storeEntries;
           }
 
+          const matchedEntries = backendEntries.filter((entry) => entryMatchesCollectionFilters(entry, collection));
           const formatted = dedupeEntriesBySlug(
-            backendEntries
+            matchedEntries
               .map((entry) => toPlainEntry(entry, collectionKey, collectionName === "blog_drafts"))
               .filter(Boolean)
           );
+
+          console.info("[CMS Dashboard] Collection load summary", {
+            name: collectionKey,
+            backendCount: backendEntries.length,
+            matchedCount: matchedEntries.length,
+            formattedCount: formatted.length,
+            sampleSlugs: formatted.slice(0, 3).map((entry) => entry.slug)
+          });
 
           if (storeEntries.length > 0) {
             return dedupeEntriesBySlug([...storeEntries, ...formatted]);
@@ -1042,6 +1268,11 @@
             state.drafts = drafts;
             state.published = published;
             renderLists();
+            console.info("[CMS Dashboard] Refresh complete", {
+              drafts: drafts.length,
+              published: published.length,
+              visible: state.visible
+            });
           } catch (error) {
             console.error("Failed to refresh dashboard entries", error);
           } finally {
