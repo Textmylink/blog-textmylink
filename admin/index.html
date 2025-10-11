@@ -169,18 +169,21 @@
         function bindIdentity(identity) {
           setupIdentityUI();
 
+          const loginPrompt = "Log in with your Netlify Identity account to manage content.";
+
           const loginButton = overlay.querySelector("[data-action='login']");
           if (loginButton) {
             loginButton.disabled = false;
             loginButton.addEventListener("click", () => {
               if (typeof identity.open === "function") {
+                setOverlayState("hidden");
                 identity.open("login");
               }
             });
           }
 
           const requireLogin = () => {
-            showLoginOverlay("Log in with your Netlify Identity account to manage content.");
+            showLoginOverlay(loginPrompt);
             if (typeof identity.open === "function") {
               identity.open("login");
             }
@@ -193,6 +196,18 @@
             } else {
               requireLogin();
             }
+          });
+
+          identity.on("open", () => {
+            setOverlayState("hidden");
+          });
+
+          identity.on("close", () => {
+            if (typeof identity.currentUser === "function" && identity.currentUser()) {
+              return;
+            }
+
+            showLoginOverlay(loginPrompt);
           });
 
           identity.on("login", () => {
