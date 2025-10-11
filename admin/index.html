@@ -94,97 +94,25 @@
         display: none !important;
       }
       #cms-mobile-nav-container {
-        display: none;
+        display: block;
         border-bottom: 1px solid #cbd5f5;
         background: #e2e8f0;
         padding: 0.5rem 1rem;
         box-sizing: border-box;
         width: 100%;
       }
-      #cms-mobile-nav-container[data-cms-visible="false"] {
-        display: none !important;
-        padding: 0;
-        border: 0;
-      }
-      #cms-mobile-nav-container[data-cms-visible="false"] .cms-mobile-nav,
-      #cms-mobile-nav-container[data-cms-visible="false"] [data-cms-mobile-wrapper="true"] {
-        display: none !important;
-      }
       #cms-mobile-nav-container[hidden] {
         display: none !important;
       }
-      #cms-mobile-nav-container .cms-mobile-nav {
-        display: none !important;
-      }
-      body.cms-nav-open #cms-mobile-nav-container .cms-mobile-nav,
-      body.cms-collections-open #cms-mobile-nav-container .cms-mobile-nav {
-        display: block !important;
-      }
-      #cms-mobile-nav-container [data-cms-mobile-wrapper="true"] {
-        display: none !important;
-      }
-      body.cms-nav-open #cms-mobile-nav-container [data-cms-mobile-wrapper="true"],
-      body.cms-collections-open #cms-mobile-nav-container [data-cms-mobile-wrapper="true"] {
-        display: block !important;
-      }
-      #cms-mobile-nav-container .cms-mobile-nav,
-      #cms-mobile-nav-container [data-testid="collection-sidebar"],
-      #cms-mobile-nav-container nav[aria-label="Collections"],
-      #cms-mobile-nav-container aside[aria-label="Collections"] {
-        width: 100% !important;
-        max-width: none !important;
-        border: none !important;
-        background: transparent !important;
-        padding: 0 !important;
-        box-sizing: border-box;
-        display: block;
-        position: static !important;
-        inset: auto !important;
-        height: auto !important;
-        box-shadow: none !important;
-        z-index: auto !important;
-        transform: none !important;
-      }
-      #cms-mobile-nav-container .cms-mobile-nav > * {
-        margin: 0 !important;
-      }
-      #cms-mobile-nav-container .cms-mobile-nav * {
-        box-shadow: none !important;
-      }
-      #cms-mobile-nav-container .cms-mobile-nav div[role="presentation"],
-      #cms-mobile-nav-container .cms-mobile-nav div[role="presentation"] > *,
-      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiDrawer"],
-      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiPaper"],
-      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiModal"],
-      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiBackdrop"] {
-        position: static !important;
-        inset: auto !important;
-        transform: none !important;
-        height: auto !important;
-        width: 100% !important;
-        max-width: none !important;
-        border-radius: 0 !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        opacity: 1 !important;
-      }
-      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiBackdrop"] {
-        display: none !important;
-      }
-      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiPaper"] > * {
-        background: transparent !important;
-      }
-      #nc-root.cms-mobile-root [data-testid="collection-sidebar"],
-      #nc-root.cms-mobile-root nav[aria-label="Collections"],
-      #nc-root.cms-mobile-root aside[aria-label="Collections"] {
-        display: none !important;
-      }
-      #cms-mobile-nav-container .cms-mobile-nav ul {
-        list-style: none;
+      #cms-mobile-nav-container .cms-mobile-nav-list {
         margin: 0;
         padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
       }
-      #cms-mobile-nav-container .cms-mobile-nav a {
+      #cms-mobile-nav-container .cms-mobile-nav-list a {
         display: block;
         padding: 0.55rem 0.65rem;
         border-radius: 0.5rem;
@@ -192,9 +120,10 @@
         text-decoration: none;
         font-weight: 500;
       }
-      #cms-mobile-nav-container .cms-mobile-nav a:hover {
+      #cms-mobile-nav-container .cms-mobile-nav-list a:hover {
         background: #cbd5f5;
       }
+
       #nc-root.cms-mobile-root .cms-mobile-pane,
       #nc-root.cms-mobile-root [data-testid="collection-content"],
       #nc-root.cms-mobile-root [data-testid="editor-pane"],
@@ -339,6 +268,8 @@
         simplifyContent(root);
       }
 
+      let collectionsMenuReady = false;
+
       function ensureHeader(root) {
         let header = document.getElementById("cms-mobile-header");
         if (!header) {
@@ -401,6 +332,10 @@
       }
 
       function enhanceNav(root) {
+        if (collectionsMenuReady) {
+          return;
+        }
+
         const nav =
           root.querySelector("[data-testid='collection-sidebar']") ||
           root.querySelector("nav[aria-label='Collections']") ||
@@ -410,101 +345,56 @@
           return;
         }
 
-        nav.id = "cms-mobile-nav";
-        nav.classList.add("cms-mobile-nav");
+        const links = Array.from(nav.querySelectorAll('a[href]')).map((link) => ({
+          href: link.getAttribute('href'),
+          text: (link.textContent || '').trim(),
+        })).filter((item) => item.href);
 
         const mount = ensureNavMount(root);
-        const wrappers = [
-          nav.closest("[class*='MuiDrawer-root']"),
-          nav.closest("div[role='presentation']"),
-          nav.parentElement,
-        ];
+        mount.innerHTML = '';
 
-        let moved = false;
-        for (const wrapper of wrappers) {
-          if (!wrapper || wrapper === document.body || wrapper === document.documentElement) {
-            continue;
-          }
-          if (!wrapper.contains(nav)) {
-            continue;
-          }
-          if (!wrapper.dataset.cmsMobileMoved) {
-            mount.appendChild(wrapper);
-            wrapper.dataset.cmsMobileMoved = "true";
-            wrapper.dataset.cmsMobileWrapper = "true";
-            wrapper.dataset.cmsVisible = document.body.classList.contains("cms-nav-open") ||
-              document.body.classList.contains("cms-collections-open")
-              ? "true"
-              : "false";
-          }
-          flattenNavElement(wrapper);
-          moved = true;
-          break;
+        const list = document.createElement('ul');
+        list.className = 'cms-mobile-nav-list';
+        list.id = 'cms-mobile-nav';
+        list.setAttribute('role', 'menu');
+
+        if (links.length) {
+          links.forEach(({ href, text }) => {
+            const item = document.createElement('li');
+            const anchor = document.createElement('a');
+            anchor.href = href;
+            anchor.textContent = text || href;
+            anchor.setAttribute('role', 'menuitem');
+            anchor.addEventListener('click', () => {
+              requestAnimationFrame(() => closeNav());
+            });
+            item.appendChild(anchor);
+            list.appendChild(item);
+          });
+        } else {
+          const empty = document.createElement('li');
+          empty.textContent = 'No collections available';
+          list.appendChild(empty);
         }
 
-        if (!moved && !nav.dataset.cmsMobileMoved) {
-          mount.appendChild(nav);
-          nav.dataset.cmsMobileMoved = "true";
-          nav.dataset.cmsMobileWrapper = "true";
-          nav.dataset.cmsVisible = document.body.classList.contains("cms-nav-open") ||
-            document.body.classList.contains("cms-collections-open")
-            ? "true"
-            : "false";
-        }
+        mount.appendChild(list);
 
-        const flattenTargets = [
+        const wrappers = new Set([
           nav,
           nav.parentElement,
-          nav.closest("[class*='MuiPaper']"),
-          nav.closest("div[role='presentation']"),
-        ];
-        flattenTargets.forEach(flattenNavElement);
+          nav.closest('[class*="MuiDrawer-root"]'),
+          nav.closest('div[role="presentation"]'),
+          nav.closest('[class*="MuiPaper"]'),
+        ]);
 
-        if (!nav.dataset.cmsMobileBound) {
-          nav.dataset.cmsMobileBound = "true";
-          nav.addEventListener("click", (event) => {
-            if (event.target.closest("a, button")) {
-              requestAnimationFrame(() => closeNav());
-            }
-          });
-        }
+        wrappers.forEach((wrapper) => {
+          if (wrapper && wrapper.parentElement) {
+            wrapper.remove();
+          }
+        });
 
-        if (!document.body.classList.contains("cms-nav-open") && !document.body.classList.contains("cms-collections-open")) {
-          const wrappers = mount.querySelectorAll("[data-cms-mobile-wrapper='true']");
-          wrappers.forEach((wrapper) => {
-            wrapper.hidden = true;
-            wrapper.style.display = "none";
-            wrapper.setAttribute("aria-hidden", "true");
-          });
-          nav.hidden = true;
-          nav.style.display = "none";
-          nav.setAttribute("aria-hidden", "true");
-        }
-
+        collectionsMenuReady = true;
         updateNavState();
-      }
-
-      function flattenNavElement(element) {
-        if (!element || element === document.body || element === document.documentElement) {
-          return;
-        }
-
-        element.style.position = "static";
-        element.style.top = "";
-        element.style.right = "";
-        element.style.bottom = "";
-        element.style.left = "";
-        element.style.transform = "none";
-        element.style.height = "auto";
-        element.style.maxHeight = "none";
-        element.style.width = "100%";
-        element.style.maxWidth = "none";
-        element.style.boxShadow = "none";
-        element.style.background = "transparent";
-        element.style.margin = "0";
-        element.style.padding = element.id === "cms-mobile-nav" ? "0" : "";
-        element.style.zIndex = "";
-        element.style.opacity = element.id === "cms-mobile-nav" ? "" : "1";
       }
 
       function ensureNavMount(root) {
@@ -514,10 +404,7 @@
           mount.id = "cms-mobile-nav-container";
           mount.setAttribute("aria-hidden", "true");
           mount.hidden = true;
-          mount.dataset.cmsVisible = "false";
           document.body.insertBefore(mount, root);
-        } else if (!mount.dataset.cmsVisible) {
-          mount.dataset.cmsVisible = mount.hidden ? "false" : "true";
         }
         return mount;
       }
@@ -552,30 +439,14 @@
         }
         const navContainer = document.getElementById("cms-mobile-nav-container");
         if (navContainer) {
-          if (open || collectionsOpen) {
-            navContainer.hidden = false;
-            navContainer.setAttribute("aria-hidden", "false");
-            navContainer.dataset.cmsVisible = "true";
-          } else {
-            navContainer.hidden = true;
-            navContainer.setAttribute("aria-hidden", "true");
-            navContainer.dataset.cmsVisible = "false";
-          }
-
-          const nav = navContainer.querySelector("#cms-mobile-nav");
-          if (nav) {
-            const showNav = open || collectionsOpen;
-            nav.setAttribute("aria-hidden", showNav ? "false" : "true");
-            nav.hidden = !showNav;
-            nav.style.display = showNav ? "" : "none";
-            nav.dataset.cmsVisible = showNav ? "true" : "false";
-            const wrappers = navContainer.querySelectorAll("[data-cms-mobile-wrapper='true']");
-            wrappers.forEach((wrapper) => {
-              wrapper.hidden = !showNav;
-              wrapper.style.display = showNav ? "" : "none";
-              wrapper.setAttribute("aria-hidden", showNav ? "false" : "true");
-              wrapper.dataset.cmsVisible = showNav ? "true" : "false";
-            });
+          const showNav = open || collectionsOpen;
+          navContainer.hidden = !showNav;
+          navContainer.setAttribute("aria-hidden", showNav ? "false" : "true");
+          navContainer.style.display = showNav ? "block" : "none";
+          const navList = navContainer.querySelector('.cms-mobile-nav-list');
+          if (navList) {
+            navList.setAttribute("aria-hidden", showNav ? "false" : "true");
+            navList.style.display = showNav ? "flex" : "none";
           }
         }
       }
