@@ -875,8 +875,44 @@
           renderSection("published", state.published);
         };
 
+        const getCollectionConfig = (collectionName) => {
+          if (!collectionName) {
+            return null;
+          }
+
+          if (typeof cms.getCollection === "function") {
+            const direct = cms.getCollection(collectionName);
+            if (direct) {
+              return direct;
+            }
+          }
+
+          const store = cms.store;
+          if (store && typeof store.getState === "function") {
+            const state = store.getState();
+            const collections = state && state.collections;
+            if (collections) {
+              if (typeof collections.get === "function") {
+                return collections.get(collectionName) || null;
+              }
+
+              if (Array.isArray(collections)) {
+                return collections.find((item) => {
+                  if (!item) return false;
+                  if (typeof item.get === "function") {
+                    return item.get("name") === collectionName;
+                  }
+                  return item.name === collectionName;
+                }) || null;
+              }
+            }
+          }
+
+          return null;
+        };
+
         const loadCollectionEntries = async (collectionName) => {
-          const collection = typeof cms.getCollection === "function" ? cms.getCollection(collectionName) : null;
+          const collection = getCollectionConfig(collectionName);
           if (!collection) {
             return [];
           }
