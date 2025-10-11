@@ -206,8 +206,12 @@
           sortMode: "newest",
           loading: false,
           refreshToken: 0,
-          visible: false
+          visible: false,
+          collectionUnsubscribe: null,
+          collectionsReady: false
         };
+
+        const requiredCollections = ["blog_drafts", "blog_published"];
 
         const ensureStyles = () => {
           if (document.getElementById("cms-dashboard-styles")) {
@@ -493,7 +497,11 @@
             root.classList.add("cms-dashboard-hidden");
           }
           updateSortLabel();
-          refreshEntries();
+          if (ensureCollectionsReady()) {
+            refreshEntries();
+          } else {
+            setLoading(true);
+          }
         };
 
         const navigateToHash = (hash) => {
@@ -911,6 +919,54 @@
           return null;
         };
 
+        const stopCollectionWatcher = () => {
+          if (state.collectionUnsubscribe) {
+            const unsubscribe = state.collectionUnsubscribe;
+            state.collectionUnsubscribe = null;
+            try {
+              unsubscribe();
+            } catch (error) {
+              console.error("Failed to detach collection watcher", error);
+            }
+          }
+        };
+
+        const collectionsAreReady = () =>
+          requiredCollections.every((name) => {
+            try {
+              return Boolean(getCollectionConfig(name));
+            } catch (error) {
+              console.error(`Failed to evaluate collection readiness for ${name}:`, error);
+              return false;
+            }
+          });
+
+        function ensureCollectionsReady() {
+          if (collectionsAreReady()) {
+            state.collectionsReady = true;
+            stopCollectionWatcher();
+            return true;
+          }
+
+          state.collectionsReady = false;
+
+          const store = cms.store;
+          if (store && typeof store.subscribe === "function" && !state.collectionUnsubscribe) {
+            const unsubscribe = store.subscribe(() => {
+              if (!state.collectionsReady && collectionsAreReady()) {
+                state.collectionsReady = true;
+                stopCollectionWatcher();
+                if (state.visible) {
+                  refreshEntries();
+                }
+              }
+            });
+            state.collectionUnsubscribe = unsubscribe;
+          }
+
+          return false;
+        }
+
         const loadCollectionEntries = async (collectionName) => {
           const collection = getCollectionConfig(collectionName);
           if (!collection) {
@@ -978,8 +1034,13 @@
           }
         };
 
-        const refreshEntries = async () => {
+        async function refreshEntries() {
           if (!state.visible) {
+            return;
+          }
+
+          if (!ensureCollectionsReady()) {
+            setLoading(true);
             return;
           }
 
@@ -1002,7 +1063,7 @@
           state.published = published;
           setLoading(false);
           renderLists();
-        };
+        }
 
         const handleRouteChange = () => {
           const hash = window.location.hash || "";
@@ -1050,6 +1111,7 @@
 
         const init = () => {
           ensureOverlay();
+          ensureCollectionsReady();
           handleRouteChange();
           window.addEventListener("hashchange", handleRouteChange, { passive: true });
           handleCmsEvents();
