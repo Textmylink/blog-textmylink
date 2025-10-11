@@ -4,86 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TextMyLink CMS</title>
-    <style>
-      body.cms-login-required {
-        background: #f5f5f5;
-      }
-
-      body.cms-login-required #nc-root,
-      body.cms-login-required .cms-dashboard {
-        display: none !important;
-      }
-
-      .cms-login-overlay {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2.5rem 1.5rem;
-        background: #f5f5f5;
-        color: #111827;
-        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
-        z-index: 9999;
-        transition: opacity 0.2s ease, visibility 0.2s ease;
-      }
-
-      .cms-login-overlay[data-state="hidden"],
-      body:not(.cms-login-required) .cms-login-overlay {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-      }
-
-      .cms-login-card {
-        width: min(420px, 100%);
-        margin: 0 auto;
-        padding: 2.5rem 2rem 2rem;
-        border-radius: 1.5rem;
-        background: #ffffff;
-        box-shadow: 0 25px 45px rgba(15, 23, 42, 0.12);
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        text-align: center;
-      }
-
-      .cms-login-title {
-        margin: 0;
-        font-size: clamp(1.75rem, 5vw, 2.25rem);
-        font-weight: 700;
-      }
-
-      .cms-login-message {
-        margin: 0;
-        color: #4b5563;
-        font-size: 1rem;
-        line-height: 1.6;
-      }
-
-      .cms-login-button {
-        align-self: center;
-        padding: 0.85rem 2.75rem;
-        border: none;
-        border-radius: 999px;
-        background: #111827;
-        color: #ffffff;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-      }
-
-      .cms-login-button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      .cms-login-button:not(:disabled):hover {
-        transform: translateY(-1px);
-        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.18);
-      }
-    </style>
   </head>
   <body>
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
@@ -95,30 +15,6 @@
     <script>
       (function bootCms() {
         let cmsInitialized = false;
-        const overlay = ensureLoginOverlay();
-        document.body.classList.add("cms-login-required");
-
-        function setOverlayState(state, message) {
-          if (!overlay) {
-            return;
-          }
-
-          const card = overlay.querySelector(".cms-login-card");
-          if (card) {
-            card.setAttribute("data-state", state || "default");
-          }
-
-          const text = overlay.querySelector(".cms-login-message");
-          if (text && typeof message === "string") {
-            text.textContent = message;
-          }
-
-          if (state === "hidden") {
-            overlay.setAttribute("data-state", "hidden");
-          } else {
-            overlay.removeAttribute("data-state");
-          }
-        }
 
         function initializeCms() {
           if (cmsInitialized) {
@@ -139,15 +35,20 @@
           }
 
           setupCustomDashboard();
-          hideLoginOverlay();
           cmsInitialized = true;
           return true;
         }
 
-        function handleCmsFailure() {
-          const message = "Netlify CMS failed to load. Check the browser console for details.";
-          console.error(message);
-          document.body.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
+        function handleCmsFailure(message) {
+          const fallback =
+            message || "Netlify CMS failed to load. Check the browser console for details.";
+          console.error(fallback);
+          if (!document.querySelector("[data-cms-error]")) {
+            const para = document.createElement("p");
+            para.setAttribute("data-cms-error", "true");
+            para.textContent = fallback;
+            document.body.appendChild(para);
+          }
         }
 
         function startCms() {
@@ -156,33 +57,10 @@
           }
         }
 
-        function hideLoginOverlay() {
-          document.body.classList.remove("cms-login-required");
-          setOverlayState("hidden");
-        }
-
-        function showLoginOverlay(message) {
-          document.body.classList.add("cms-login-required");
-          setOverlayState("default", message);
-        }
-
         function bindIdentity(identity) {
           setupIdentityUI();
 
-          const loginPrompt = "Log in with your Netlify Identity account to manage content.";
-
-          const loginButton = overlay.querySelector("[data-action='login']");
-          if (loginButton) {
-            loginButton.disabled = false;
-            loginButton.addEventListener("click", () => {
-              if (typeof identity.open === "function") {
-                identity.open("login");
-              }
-            });
-          }
-
           const requireLogin = () => {
-            showLoginOverlay(loginPrompt);
             if (typeof identity.open === "function") {
               identity.open("login");
             }
@@ -190,27 +68,13 @@
 
           identity.on("init", (user) => {
             if (user) {
-              hideLoginOverlay();
               startCms();
             } else {
               requireLogin();
             }
           });
 
-          identity.on("open", () => {
-            setOverlayState("hidden");
-          });
-
-          identity.on("close", () => {
-            if (typeof identity.currentUser === "function" && identity.currentUser()) {
-              return;
-            }
-
-            showLoginOverlay(loginPrompt);
-          });
-
           identity.on("login", () => {
-            hideLoginOverlay();
             startCms();
           });
 
@@ -220,7 +84,6 @@
 
           identity.on("error", (error) => {
             console.error("Netlify Identity error", error);
-            showLoginOverlay("We couldn't connect to Netlify Identity. Please refresh the page and try again.");
           });
 
           identity.init();
@@ -235,38 +98,17 @@
           }
 
           if (attemptsLeft <= 0) {
-            setOverlayState("default", "Netlify Identity failed to load. Please refresh the page or contact an administrator.");
+            handleCmsFailure(
+              "Netlify Identity failed to load. Please refresh the page or contact an administrator."
+            );
             return;
           }
 
           setTimeout(() => waitForIdentity(attemptsLeft - 1), 250);
         }
 
-        setOverlayState("default", "Loading Netlify Identity…");
         waitForIdentity(40);
       })();
-
-      function ensureLoginOverlay() {
-        let overlay = document.querySelector(".cms-login-overlay");
-        if (overlay) {
-          return overlay;
-        }
-
-        overlay = document.createElement("div");
-        overlay.className = "cms-login-overlay";
-        overlay.setAttribute("role", "dialog");
-        overlay.setAttribute("aria-modal", "true");
-        overlay.innerHTML = `
-          <div class="cms-login-card">
-            <h1 class="cms-login-title">Admin access required</h1>
-            <p class="cms-login-message">Loading Netlify Identity…</p>
-            <button type="button" class="cms-login-button" data-action="login" disabled>Log in</button>
-          </div>
-        `;
-
-        document.body.appendChild(overlay);
-        return overlay;
-      }
 
       function setupIdentityUI() {
         if (!window.netlifyIdentity) {
