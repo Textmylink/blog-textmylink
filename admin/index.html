@@ -101,8 +101,14 @@
         box-sizing: border-box;
         width: 100%;
       }
-      body.cms-nav-open #cms-mobile-nav-container,
-      body.cms-collections-open #cms-mobile-nav-container {
+      #cms-mobile-nav-container[hidden] {
+        display: none !important;
+      }
+      #cms-mobile-nav-container .cms-mobile-nav {
+        display: none;
+      }
+      body.cms-nav-open #cms-mobile-nav-container .cms-mobile-nav,
+      body.cms-collections-open #cms-mobile-nav-container .cms-mobile-nav {
         display: block;
       }
       #cms-mobile-nav-container .cms-mobile-nav,
@@ -404,6 +410,7 @@
           if (!wrapper.dataset.cmsMobileMoved) {
             mount.appendChild(wrapper);
             wrapper.dataset.cmsMobileMoved = "true";
+            wrapper.dataset.cmsMobileWrapper = "true";
           }
           flattenNavElement(wrapper);
           moved = true;
@@ -413,6 +420,7 @@
         if (!moved && !nav.dataset.cmsMobileMoved) {
           mount.appendChild(nav);
           nav.dataset.cmsMobileMoved = "true";
+          nav.dataset.cmsMobileWrapper = "true";
         }
 
         const flattenTargets = [
@@ -430,6 +438,18 @@
               requestAnimationFrame(() => closeNav());
             }
           });
+        }
+
+        if (!document.body.classList.contains("cms-nav-open") && !document.body.classList.contains("cms-collections-open")) {
+          const wrappers = mount.querySelectorAll("[data-cms-mobile-wrapper='true']");
+          wrappers.forEach((wrapper) => {
+            wrapper.hidden = true;
+            wrapper.style.display = "none";
+            wrapper.setAttribute("aria-hidden", "true");
+          });
+          nav.hidden = true;
+          nav.style.display = "none";
+          nav.setAttribute("aria-hidden", "true");
         }
 
         updateNavState();
@@ -510,7 +530,16 @@
 
           const nav = navContainer.querySelector("#cms-mobile-nav");
           if (nav) {
-            nav.setAttribute("aria-hidden", open || collectionsOpen ? "false" : "true");
+            const showNav = open || collectionsOpen;
+            nav.setAttribute("aria-hidden", showNav ? "false" : "true");
+            nav.hidden = !showNav;
+            nav.style.display = showNav ? "" : "none";
+            const wrappers = navContainer.querySelectorAll("[data-cms-mobile-wrapper='true']");
+            wrappers.forEach((wrapper) => {
+              wrapper.hidden = !showNav;
+              wrapper.style.display = showNav ? "" : "none";
+              wrapper.setAttribute("aria-hidden", showNav ? "false" : "true");
+            });
           }
         }
       }
