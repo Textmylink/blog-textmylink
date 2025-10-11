@@ -15,18 +15,24 @@
     <script>
       (function bootCms() {
         let cmsInitialized = false;
+        let cmsInitPromise = null;
 
         function initializeCms() {
           if (cmsInitialized) {
             return true;
           }
 
+          if (cmsInitPromise) {
+            return true;
+          }
+
           let initHandled = false;
+          let initResult;
           if (window.CMS && typeof window.CMS.init === "function") {
-            window.CMS.init();
+            initResult = window.CMS.init();
             initHandled = true;
           } else if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
-            window.NetlifyCmsApp.init();
+            initResult = window.NetlifyCmsApp.init();
             initHandled = true;
           }
 
@@ -34,8 +40,29 @@
             return false;
           }
 
-          setupCustomDashboard();
-          cmsInitialized = true;
+          const handleReady = () => {
+            if (cmsInitialized) {
+              return;
+            }
+            setupCustomDashboard();
+            cmsInitialized = true;
+            cmsInitPromise = null;
+          };
+
+          if (initResult && typeof initResult.then === "function") {
+            cmsInitPromise = initResult
+              .then(() => {
+                handleReady();
+              })
+              .catch((error) => {
+                console.error("Netlify CMS failed to initialize", error);
+                handleCmsFailure();
+                cmsInitPromise = null;
+              });
+          } else {
+            handleReady();
+          }
+
           return true;
         }
 
