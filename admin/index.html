@@ -4,259 +4,46 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TextMyLink CMS</title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        min-height: 100%;
-        background: #f5f5f5;
-        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
-        color: #111827;
-      }
-
-      body:before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        background: radial-gradient(circle at top, rgba(79, 70, 229, 0.08), transparent 55%);
-        pointer-events: none;
-      }
-
-      .cms-shell {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        padding: 2rem 1.5rem;
-        box-sizing: border-box;
-      }
-
-      .cms-card {
-        width: min(520px, 100%);
-        padding: 2.5rem 2.25rem;
-        background: #ffffff;
-        border-radius: 1.25rem;
-        box-shadow: 0 25px 50px rgba(15, 23, 42, 0.12);
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        align-items: stretch;
-        text-align: center;
-      }
-
-      .cms-card__title {
-        margin: 0;
-        font-size: clamp(2rem, 5vw, 2.6rem);
-        font-weight: 700;
-      }
-
-      .cms-card__subtitle {
-        margin: 0;
-        font-size: 1rem;
-        color: #6b7280;
-      }
-
-      .cms-card__actions {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-
-      .cms-card__button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.6rem;
-        border: none;
-        border-radius: 999px;
-        padding: 0.95rem 1.5rem;
-        font-size: 1.05rem;
-        font-weight: 600;
-        cursor: pointer;
-        background: #111827;
-        color: #ffffff;
-        box-shadow: 0 16px 35px rgba(17, 24, 39, 0.18);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-      }
-
-      .cms-card__button:hover,
-      .cms-card__button:focus {
-        transform: translateY(-1px);
-        box-shadow: 0 24px 45px rgba(17, 24, 39, 0.2);
-      }
-
-      .cms-card__link {
-        font-size: 0.95rem;
-        color: #4f46e5;
-        text-decoration: none;
-        font-weight: 600;
-      }
-
-      .cms-card__link:hover,
-      .cms-card__link:focus {
-        text-decoration: underline;
-      }
-
-      .cms-card[hidden] {
-        display: none;
-      }
-
-      #nc-root {
-        display: none;
-      }
-
-      #nc-root.cms-active {
-        display: block;
-        min-height: 100vh;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="cms-shell">
-      <div class="cms-card" id="cms-login-card">
-        <div>
-          <h1 class="cms-card__title">Admin Portal</h1>
-          <p class="cms-card__subtitle">Sign in to manage posts and media.</p>
-        </div>
-        <div class="cms-card__actions">
-          <button type="button" class="cms-card__button" data-cms-action="login">
-            <span aria-hidden="true">🔐</span>
-            <span>Log in with Netlify Identity</span>
-          </button>
-          <a
-            class="cms-card__link"
-            href="https://docs.netlify.com/visitor-access/identity/"
-            target="_blank"
-            rel="noreferrer"
-          >Need access?</a>
-        </div>
-      </div>
-    </div>
-
-    <div id="nc-root" role="main" aria-hidden="true"></div>
-
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
-      window.process = window.process || { env: { NODE_ENV: "production" } };
-      window.CMS_MANUAL_INIT = true;
-    </script>
-    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
-    <script>
       (function () {
-        const loginCard = document.getElementById("cms-login-card");
-        const loginButton = loginCard?.querySelector("[data-cms-action='login']");
-        const cmsRoot = document.getElementById("nc-root");
-
-        function showLoginCard() {
-          if (loginCard) {
-            loginCard.hidden = false;
-          }
-          if (cmsRoot) {
-            cmsRoot.classList.remove("cms-active");
-            cmsRoot.setAttribute("aria-hidden", "true");
-          }
-        }
-
-        function showCms() {
-          if (loginCard) {
-            loginCard.hidden = true;
-          }
-          if (cmsRoot) {
-            cmsRoot.classList.add("cms-active");
-            cmsRoot.setAttribute("aria-hidden", "false");
-          }
-        }
-
-        function startCms() {
-          if (!window.CMS || typeof window.CMS.init !== "function") {
-            console.error("Decap CMS is not available");
-            return;
-          }
-
-          const initResult = window.CMS.init();
-          if (initResult && typeof initResult.then === "function") {
-            initResult
-              .then(() => {
-                showCms();
-              })
-              .catch((error) => {
-                console.error("Decap CMS failed to initialize", error);
-                showLoginCard();
-              });
-          } else {
-            showCms();
-          }
-        }
-
         function bindIdentity(identity) {
-          if (!identity) {
-            showLoginCard();
-            return;
-          }
-
-          if (loginButton) {
-            loginButton.addEventListener("click", () => identity.open("login"));
-          }
-
-          const requireLogin = () => {
-            showLoginCard();
-            if (typeof identity.open === "function") {
+          identity.on("init", function (user) {
+            if (!user) {
+              identity.on("login", function () {
+                document.location.reload();
+              });
               identity.open("login");
             }
-          };
-
-          identity.on("init", (user) => {
-            if (user) {
-              startCms();
-            } else {
-              requireLogin();
-            }
           });
 
-          identity.on("login", () => {
-            if (typeof identity.close === "function") {
-              identity.close();
-            }
-            startCms();
+          identity.on("logout", function () {
+            document.location.reload();
           });
-
-          identity.on("logout", () => {
-            requireLogin();
-          });
-
-          identity.on("close", () => {
-            if (!identity.currentUser()) {
-              showLoginCard();
-            }
-          });
-
-          identity.on("error", (error) => {
-            console.error("Netlify Identity error", error);
-            showLoginCard();
-          });
-
-          identity.init();
         }
 
-        function waitForIdentity(attempts) {
-          const identity = window.netlifyIdentity;
-          if (identity) {
-            bindIdentity(identity);
+        function waitForIdentity(retries) {
+          if (window.netlifyIdentity) {
+            bindIdentity(window.netlifyIdentity);
             return;
           }
 
-          if (attempts <= 0) {
+          if (retries <= 0) {
             console.error("Netlify Identity failed to load");
-            showLoginCard();
             return;
           }
 
-          setTimeout(() => waitForIdentity(attempts - 1), 250);
+          window.setTimeout(function () {
+            waitForIdentity(retries - 1);
+          }, 250);
         }
 
         waitForIdentity(40);
       })();
     </script>
+  </head>
+  <body>
+    <div id="nc-root"></div>
+    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   </body>
 </html>
