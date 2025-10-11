@@ -203,7 +203,6 @@
           overlay: null,
           drafts: [],
           published: [],
-          sortMode: "newest",
           loading: false,
           refreshToken: 0,
           visible: false,
@@ -448,7 +447,6 @@
                 <div class="cms-dashboard__list" data-dashboard-list="published"></div>
               </section>
               <div class="cms-dashboard__footer">
-                <button type="button" class="cms-dashboard__secondary" data-dashboard-action="sort"></button>
                 <button type="button" class="cms-dashboard__secondary" data-dashboard-action="media">Media</button>
               </div>
               <p class="cms-dashboard__loading" data-dashboard-loading hidden>Loading…</p>
@@ -464,11 +462,6 @@
 
           overlay.querySelector("[data-dashboard-action='media']")?.addEventListener("click", () => {
             navigateToHash("#/media");
-          });
-
-          overlay.querySelector("[data-dashboard-action='sort']")?.addEventListener("click", () => {
-            state.sortMode = state.sortMode === "alphabetical" ? "newest" : "alphabetical";
-            renderLists();
           });
 
           return overlay;
@@ -496,7 +489,6 @@
           if (root) {
             root.classList.add("cms-dashboard-hidden");
           }
-          updateSortLabel();
           if (ensureCollectionsReady()) {
             refreshEntries();
           } else {
@@ -685,55 +677,19 @@
           });
         };
 
-        const stripCollectionFilter = (collection) => {
-          if (!collection) {
-            return collection;
-          }
-
-          if (typeof collection.delete === "function") {
-            return collection.delete("filter");
-          }
-
-          if (typeof collection.remove === "function") {
-            return collection.remove("filter");
-          }
-
-          if (typeof collection.set === "function") {
-            return collection.set("filter", undefined);
-          }
-
-          if (typeof collection === "object") {
-            const clone = { ...collection };
-            delete clone.filter;
-            return clone;
-          }
-
-          return collection;
-        };
-
         const sortEntries = (entries) => {
           const sorted = entries.slice();
-          if (state.sortMode === "alphabetical") {
-            sorted.sort((a, b) => a.title.localeCompare(b.title));
-          } else {
-            sorted.sort((a, b) => {
-              const dateA = a.date ? new Date(a.date).getTime() : 0;
-              const dateB = b.date ? new Date(b.date).getTime() : 0;
-              if (dateA && dateB && dateA !== dateB) {
-                return dateB - dateA;
-              }
-              return a.title.localeCompare(b.title);
-            });
-          }
+          sorted.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b.date ? new Date(b.date).getTime() : 0;
+            if (dateA !== dateB) {
+              return dateB - dateA;
+            }
+            const titleA = (a.title || "").toString();
+            const titleB = (b.title || "").toString();
+            return titleA.localeCompare(titleB);
+          });
           return sorted;
-        };
-
-        const updateSortLabel = () => {
-          const overlay = ensureOverlay();
-          const button = overlay.querySelector("[data-dashboard-action='sort']");
-          if (button) {
-            button.textContent = state.sortMode === "alphabetical" ? "Sort: A–Z" : "Sort: Newest";
-          }
         };
 
         const renderSection = (section, entries) => {
@@ -788,9 +744,24 @@
         };
 
         const renderLists = () => {
-          updateSortLabel();
           renderSection("drafts", state.drafts);
           renderSection("published", state.published);
+        };
+
+        const toPlainCollection = (collection) => {
+          if (!collection) {
+            return null;
+          }
+
+          if (typeof collection.toJS === "function") {
+            return collection.toJS();
+          }
+
+          if (typeof collection.toJSON === "function") {
+            return collection.toJSON();
+          }
+
+          return collection;
         };
 
         const getCollectionConfig = (collectionName) => {
@@ -877,18 +848,20 @@
           return false;
         }
 
-        const loadBlogEntries = async () => {
-          const collection = getCollectionConfig("blog_drafts");
+        const loadCollectionEntries = async (collectionName) => {
+          if (!collectionName) {
+            return [];
+          }
+
+          const collection = getCollectionConfig(collectionName);
           if (!collection) {
             return [];
           }
 
-          const targetCollection = stripCollectionFilter(collection);
-
           const collectionKey =
-            collection && typeof collection.get === "function"
-              ? collection.get("name") || "blog_drafts"
-              : collection?.name || "blog_drafts";
+            typeof collection.get === "function"
+              ? collection.get("name") || collectionName
+              : collection?.name || collectionName;
 
           const store = cms.store;
           const actions = cms.actions;
@@ -899,7 +872,7 @@
             const loadEntriesAction = actions && typeof actions.loadEntries === "function" ? actions.loadEntries : null;
             if (loadEntriesAction) {
               try {
-                await store.dispatch(loadEntriesAction(targetCollection));
+                await store.dispatch(loadEntriesAction(collection));
                 const state = store.getState();
                 const entriesState = state && state.entries;
                 if (entriesState && typeof entriesState.getIn === "function") {
@@ -909,15 +882,9 @@
                     .map((slug) => entriesState.getIn(["entities", `${collectionKey}.${slug}`]))
                     .filter(Boolean);
 
-                  const formatted = rawEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean);
-                  storeEntries = dedupeEntriesBySlug(formatted);
-
-                  const hasDraft = storeEntries.some((entry) => entry.isDraft);
-                  const hasPublished = storeEntries.some((entry) => entry && !entry.isDraft);
-
-                  if (storeEntries.length > 0 && hasDraft && hasPublished) {
-                    return storeEntries;
-                  }
+                  storeEntries = dedupeEntriesBySlug(
+                    rawEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean)
+                  );
                 }
               } catch (error) {
                 console.error(`Failed to load entries for ${collectionKey} from store:`, error);
@@ -931,13 +898,13 @@
           }
 
           try {
-            const result = await backend.listEntries(targetCollection);
+            const result = await backend.listEntries(toPlainCollection(collection));
             const entries = Array.isArray(result?.entries)
               ? result.entries
               : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
 
             if (!entries) {
-              return [];
+              return storeEntries;
             }
 
             const arrayEntries = Array.isArray(entries) ? entries : toArray(entries);
@@ -970,7 +937,10 @@
           const currentToken = ++state.refreshToken;
           setLoading(true);
 
-          const entries = await loadBlogEntries();
+          const [draftEntries, publishedEntries] = await Promise.all([
+            loadCollectionEntries("blog_drafts"),
+            loadCollectionEntries("blog_published")
+          ]);
 
           if (currentToken !== state.refreshToken || !state.visible) {
             if (currentToken === state.refreshToken) {
@@ -979,19 +949,17 @@
             return;
           }
 
-          const drafts = [];
-          const published = [];
+          const drafts = dedupeEntriesBySlug(
+            draftEntries
+              .filter(Boolean)
+              .map((entry) => ({ ...entry, isDraft: entry.isDraft ?? true }))
+          );
 
-          entries.forEach((entry) => {
-            if (!entry) {
-              return;
-            }
-            if (entry.isDraft) {
-              drafts.push(entry);
-            } else {
-              published.push(entry);
-            }
-          });
+          const published = dedupeEntriesBySlug(
+            publishedEntries
+              .filter(Boolean)
+              .map((entry) => ({ ...entry, isDraft: entry.isDraft ?? false }))
+          );
 
           state.drafts = drafts;
           state.published = published;
