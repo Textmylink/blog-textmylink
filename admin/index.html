@@ -842,32 +842,6 @@
           return null;
         };
 
-        const removeCollectionFilters = (collection) => {
-          if (!collection) {
-            return null;
-          }
-
-          if (typeof collection.delete === "function") {
-            let next = collection;
-            if (typeof next.delete === "function") {
-              next = next.delete("filter");
-            }
-            if (typeof next.delete === "function") {
-              next = next.delete("filters");
-            }
-            return next;
-          }
-
-          if (typeof collection === "object") {
-            const copy = { ...collection };
-            delete copy.filter;
-            delete copy.filters;
-            return copy;
-          }
-
-          return collection;
-        };
-
         const stopCollectionWatcher = () => {
           if (state.collectionUnsubscribe) {
             const unsubscribe = state.collectionUnsubscribe;
@@ -971,112 +945,53 @@
           }
 
           const backend = typeof cms.getBackend === "function" ? cms.getBackend() : null;
-          if (!backend || typeof backend.listEntries !== "function") {
+          if (!backend) {
             return storeEntries;
           }
 
+          let backendEntries = [];
+
           try {
-            const backendCollection =
-              collection && typeof collection.get === "function"
-                ? collection
-                : typeof cms.getCollection === "function"
-                  ? cms.getCollection(collectionName) || collection
-                  : collection;
+            if (typeof backend.listAllEntries === "function") {
+              const allResult = await backend.listAllEntries(collection);
+              const normalized = Array.isArray(allResult)
+                ? allResult
+                : allResult?.toArray?.() || allResult?.toJS?.() || allResult;
 
-            if (!backendCollection || typeof backendCollection.get !== "function") {
-              console.warn(
-                `Unable to load entries for ${collectionKey}: backend collection config is unavailable.`
-              );
-              return storeEntries;
+              if (normalized) {
+                backendEntries = toArray(normalized);
+              }
             }
 
-            const result = await backend.listEntries(backendCollection);
-            const entries = Array.isArray(result?.entries)
-              ? result.entries
-              : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
+            if (backendEntries.length === 0 && typeof backend.listEntries === "function") {
+              const result = await backend.listEntries(collection);
+              const entries = Array.isArray(result?.entries)
+                ? result.entries
+                : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
 
-            if (!entries) {
-              return storeEntries;
+              if (entries) {
+                backendEntries = toArray(entries);
+              }
             }
-
-            const arrayEntries = Array.isArray(entries) ? entries : toArray(entries);
-
-            const formatted = dedupeEntriesBySlug(
-              arrayEntries
-                .map((entry) => toPlainEntry(entry, collectionKey, collectionName === "blog_drafts"))
-                .filter(Boolean)
-            );
-
-            if (storeEntries.length > 0) {
-              return dedupeEntriesBySlug([...storeEntries, ...formatted]);
-            }
-
-            return formatted;
           } catch (error) {
-            console.error(`Failed to load entries for ${collectionKey}:`, error);
+            console.error(`Failed to load entries for ${collectionKey} from backend:`, error);
+          }
+
+          if (backendEntries.length === 0) {
             return storeEntries;
           }
-        };
 
-        const loadUnfilteredBackendEntries = async () => {
-          const backend = typeof cms.getBackend === "function" ? cms.getBackend() : null;
-          if (!backend || typeof backend.listEntries !== "function") {
-            return [];
-          }
-
-          const availableCollectionName = requiredCollections.find((name) => getCollectionConfig(name));
-          if (!availableCollectionName) {
-            return [];
-          }
-
-          const originalCollection = getCollectionConfig(availableCollectionName);
-          const collectionKey =
-            typeof originalCollection?.get === "function"
-              ? originalCollection.get("name") || availableCollectionName
-              : originalCollection?.name || availableCollectionName;
-
-          const backendCollection = removeCollectionFilters(originalCollection);
-          if (!backendCollection) {
-            return [];
-          }
-
-          try {
-            const result = await backend.listEntries(backendCollection);
-            const entries = Array.isArray(result?.entries)
-              ? result.entries
-              : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
-
-            if (!entries) {
-              return [];
-            }
-
-            const arrayEntries = Array.isArray(entries) ? entries : toArray(entries);
-
-            return dedupeEntriesBySlug(
-              arrayEntries.map((entry) => toPlainEntry(entry, collectionKey, false)).filter(Boolean)
-            );
-          } catch (error) {
-            console.error("Failed to load unfiltered blog entries:", error);
-            return [];
-          }
-        };
-
-        const loadBlogEntries = async () => {
-          const backendEntries = await loadUnfilteredBackendEntries();
-          if (backendEntries.length > 0) {
-            return backendEntries;
-          }
-
-          const fallbackEntries = await Promise.all(
-            requiredCollections.map((name) => loadCollectionEntries(name))
+          const formatted = dedupeEntriesBySlug(
+            backendEntries
+              .map((entry) => toPlainEntry(entry, collectionKey, collectionName === "blog_drafts"))
+              .filter(Boolean)
           );
 
-          const flattened =
-            typeof fallbackEntries.flat === "function"
-              ? fallbackEntries.flat()
-              : [].concat(...fallbackEntries);
+          if (storeEntries.length > 0) {
+            return dedupeEntriesBySlug([...storeEntries, ...formatted]);
+          }
 
-          return dedupeEntriesBySlug(flattened.filter(Boolean));
+          return formatted;
         };
 
         async function refreshEntries() {
@@ -1103,18 +1018,25 @@
           setLoading(true);
 
           try {
-            const allEntries = await loadBlogEntries();
+            const entriesByCollection = await Promise.all(
+              requiredCollections.map((name) => loadCollectionEntries(name))
+            );
 
             if (currentToken !== state.refreshToken || !state.visible) {
               return;
             }
 
+            const flattened =
+              typeof entriesByCollection.flat === "function"
+                ? entriesByCollection.flat()
+                : [].concat(...entriesByCollection);
+
             const drafts = dedupeEntriesBySlug(
-              allEntries.filter((entry) => entry && entry.isDraft === true)
+              flattened.filter((entry) => entry && entry.isDraft === true)
             );
 
             const published = dedupeEntriesBySlug(
-              allEntries.filter((entry) => entry && entry.isDraft === false)
+              flattened.filter((entry) => entry && entry.isDraft === false)
             );
 
             state.drafts = drafts;
