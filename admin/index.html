@@ -176,7 +176,6 @@
             loginButton.disabled = false;
             loginButton.addEventListener("click", () => {
               if (typeof identity.open === "function") {
-                setOverlayState("hidden");
                 identity.open("login");
               }
             });
