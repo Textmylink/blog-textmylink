@@ -816,6 +816,32 @@
           return null;
         };
 
+        const removeCollectionFilters = (collection) => {
+          if (!collection) {
+            return null;
+          }
+
+          if (typeof collection.delete === "function") {
+            let next = collection;
+            if (typeof next.delete === "function") {
+              next = next.delete("filter");
+            }
+            if (typeof next.delete === "function") {
+              next = next.delete("filters");
+            }
+            return next;
+          }
+
+          if (typeof collection === "object") {
+            const copy = { ...collection };
+            delete copy.filter;
+            delete copy.filters;
+            return copy;
+          }
+
+          return collection;
+        };
+
         const stopCollectionWatcher = () => {
           if (state.collectionUnsubscribe) {
             const unsubscribe = state.collectionUnsubscribe;
@@ -954,6 +980,67 @@
           }
         };
 
+        const loadUnfilteredBackendEntries = async () => {
+          const backend = typeof cms.getBackend === "function" ? cms.getBackend() : null;
+          if (!backend || typeof backend.listEntries !== "function") {
+            return [];
+          }
+
+          const availableCollectionName = requiredCollections.find((name) => getCollectionConfig(name));
+          if (!availableCollectionName) {
+            return [];
+          }
+
+          const originalCollection = getCollectionConfig(availableCollectionName);
+          const collectionKey =
+            typeof originalCollection?.get === "function"
+              ? originalCollection.get("name") || availableCollectionName
+              : originalCollection?.name || availableCollectionName;
+
+          const backendCollection = removeCollectionFilters(originalCollection);
+          if (!backendCollection) {
+            return [];
+          }
+
+          try {
+            const result = await backend.listEntries(backendCollection);
+            const entries = Array.isArray(result?.entries)
+              ? result.entries
+              : result?.entries?.toArray?.() || result?.entries?.toJS?.() || result;
+
+            if (!entries) {
+              return [];
+            }
+
+            const arrayEntries = Array.isArray(entries) ? entries : toArray(entries);
+
+            return dedupeEntriesBySlug(
+              arrayEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean)
+            );
+          } catch (error) {
+            console.error("Failed to load unfiltered blog entries:", error);
+            return [];
+          }
+        };
+
+        const loadBlogEntries = async () => {
+          const backendEntries = await loadUnfilteredBackendEntries();
+          if (backendEntries.length > 0) {
+            return backendEntries;
+          }
+
+          const fallbackEntries = await Promise.all(
+            requiredCollections.map((name) => loadCollectionEntries(name))
+          );
+
+          const flattened =
+            typeof fallbackEntries.flat === "function"
+              ? fallbackEntries.flat()
+              : [].concat(...fallbackEntries);
+
+          return dedupeEntriesBySlug(flattened.filter(Boolean));
+        };
+
         async function refreshEntries() {
           if (!state.visible) {
             return;
@@ -967,34 +1054,31 @@
           const currentToken = ++state.refreshToken;
           setLoading(true);
 
-          const [draftEntries, publishedEntries] = await Promise.all([
-            loadCollectionEntries("blog_drafts"),
-            loadCollectionEntries("blog_published")
-          ]);
+          try {
+            const allEntries = await loadBlogEntries();
 
-          if (currentToken !== state.refreshToken || !state.visible) {
+            if (currentToken !== state.refreshToken || !state.visible) {
+              return;
+            }
+
+            const drafts = dedupeEntriesBySlug(
+              allEntries.filter((entry) => entry && entry.isDraft === true)
+            );
+
+            const published = dedupeEntriesBySlug(
+              allEntries.filter((entry) => entry && entry.isDraft === false)
+            );
+
+            state.drafts = drafts;
+            state.published = published;
+            renderLists();
+          } catch (error) {
+            console.error("Failed to refresh dashboard entries", error);
+          } finally {
             if (currentToken === state.refreshToken) {
               setLoading(false);
             }
-            return;
           }
-
-          const drafts = dedupeEntriesBySlug(
-            draftEntries
-              .filter(Boolean)
-              .map((entry) => ({ ...entry, isDraft: entry.isDraft ?? true }))
-          );
-
-          const published = dedupeEntriesBySlug(
-            publishedEntries
-              .filter(Boolean)
-              .map((entry) => ({ ...entry, isDraft: entry.isDraft ?? false }))
-          );
-
-          state.drafts = drafts;
-          state.published = published;
-          setLoading(false);
-          renderLists();
         }
 
         const handleRouteChange = () => {
