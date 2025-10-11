@@ -207,7 +207,8 @@
           refreshToken: 0,
           visible: false,
           collectionUnsubscribe: null,
-          collectionsReady: false
+          collectionsReady: false,
+          collectionRetryTimeout: null
         };
 
         const requiredCollections = ["blog_drafts", "blog_published"];
@@ -467,11 +468,19 @@
           return overlay;
         };
 
+        const clearCollectionRetry = () => {
+          if (state.collectionRetryTimeout) {
+            clearTimeout(state.collectionRetryTimeout);
+            state.collectionRetryTimeout = null;
+          }
+        };
+
         const hideDashboard = () => {
           const overlay = ensureOverlay();
           overlay.classList.remove("is-visible");
           overlay.setAttribute("aria-hidden", "true");
           state.visible = false;
+          clearCollectionRetry();
           document.body.classList.remove("cms-dashboard-active");
           const root = document.getElementById("nc-root");
           if (root) {
@@ -484,6 +493,7 @@
           overlay.classList.add("is-visible");
           overlay.setAttribute("aria-hidden", "false");
           state.visible = true;
+          renderLists();
           document.body.classList.add("cms-dashboard-active");
           const root = document.getElementById("nc-root");
           if (root) {
@@ -493,6 +503,14 @@
             refreshEntries();
           } else {
             setLoading(true);
+            if (!state.collectionRetryTimeout) {
+              state.collectionRetryTimeout = setTimeout(() => {
+                state.collectionRetryTimeout = null;
+                if (state.visible) {
+                  refreshEntries();
+                }
+              }, 500);
+            }
           }
         };
 
@@ -639,7 +657,7 @@
           return withoutExtension;
         };
 
-        const toPlainEntry = (entry, fallbackCollection) => {
+        const toPlainEntry = (entry, fallbackCollection, fallbackDraft) => {
           if (!entry) {
             return null;
           }
@@ -669,7 +687,15 @@
             dataValue?.date || readValue(entry, "updatedOn") || readValue(entry, "updated_at") || null;
 
           const draftFlag = interpretDraftFlag(dataValue?.draft);
-          const isDraft = draftFlag != null ? draftFlag : false;
+          const fallbackIsDraft =
+            typeof fallbackDraft === "boolean"
+              ? fallbackDraft
+              : fallbackCollection === "blog_drafts"
+                ? true
+                : fallbackCollection === "blog_published"
+                  ? false
+                  : null;
+          const isDraft = draftFlag != null ? draftFlag : fallbackIsDraft != null ? fallbackIsDraft : false;
 
           return {
             slug,
@@ -759,10 +785,10 @@
           indicator.hidden = !loading;
         };
 
-        const renderLists = () => {
+        function renderLists() {
           renderSection("drafts", state.drafts);
           renderSection("published", state.published);
-        };
+        }
 
         const toPlainCollection = (collection) => {
           if (!collection) {
@@ -914,9 +940,17 @@
             const loadEntriesAction = actions && typeof actions.loadEntries === "function" ? actions.loadEntries : null;
             if (loadEntriesAction) {
               try {
-                await store.dispatch(loadEntriesAction(collection));
-                const state = store.getState();
-                const entriesState = state && state.entries;
+                const dispatchResult = store.dispatch(loadEntriesAction(collection));
+                if (dispatchResult && typeof dispatchResult.then === "function") {
+                  await dispatchResult;
+                }
+              } catch (error) {
+                console.error(`Failed to dispatch loadEntries for ${collectionKey}:`, error);
+              }
+
+              try {
+                const stateSnapshot = store.getState();
+                const entriesState = stateSnapshot && stateSnapshot.entries;
                 if (entriesState && typeof entriesState.getIn === "function") {
                   const ids = entriesState.getIn(["pages", collectionKey, "ids"]);
                   const entrySlugs = toArray(ids);
@@ -925,7 +959,9 @@
                     .filter(Boolean);
 
                   storeEntries = dedupeEntriesBySlug(
-                    rawEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean)
+                    rawEntries
+                      .map((entry) => toPlainEntry(entry, collectionKey, collectionName === "blog_drafts"))
+                      .filter(Boolean)
                   );
                 }
               } catch (error) {
@@ -966,7 +1002,9 @@
             const arrayEntries = Array.isArray(entries) ? entries : toArray(entries);
 
             const formatted = dedupeEntriesBySlug(
-              arrayEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean)
+              arrayEntries
+                .map((entry) => toPlainEntry(entry, collectionKey, collectionName === "blog_drafts"))
+                .filter(Boolean)
             );
 
             if (storeEntries.length > 0) {
@@ -1015,7 +1053,7 @@
             const arrayEntries = Array.isArray(entries) ? entries : toArray(entries);
 
             return dedupeEntriesBySlug(
-              arrayEntries.map((entry) => toPlainEntry(entry, collectionKey)).filter(Boolean)
+              arrayEntries.map((entry) => toPlainEntry(entry, collectionKey, false)).filter(Boolean)
             );
           } catch (error) {
             console.error("Failed to load unfiltered blog entries:", error);
@@ -1042,12 +1080,22 @@
         };
 
         async function refreshEntries() {
+          clearCollectionRetry();
+
           if (!state.visible) {
             return;
           }
 
           if (!ensureCollectionsReady()) {
             setLoading(true);
+            if (!state.collectionRetryTimeout) {
+              state.collectionRetryTimeout = setTimeout(() => {
+                state.collectionRetryTimeout = null;
+                if (state.visible) {
+                  refreshEntries();
+                }
+              }, 500);
+            }
             return;
           }
 
