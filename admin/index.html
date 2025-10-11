@@ -61,8 +61,16 @@
           setupIdentityUI();
 
           const requireLogin = () => {
-            if (typeof identity.open === "function") {
-              identity.open("login");
+            if (typeof identity.open !== "function") {
+              return;
+            }
+
+            const openLogin = () => identity.open("login");
+
+            if (typeof window.requestAnimationFrame === "function") {
+              window.requestAnimationFrame(openLogin);
+            } else {
+              setTimeout(openLogin, 0);
             }
           };
 
@@ -75,7 +83,17 @@
           });
 
           identity.on("login", () => {
+            if (typeof identity.close === "function") {
+              identity.close();
+            }
+
             startCms();
+          });
+
+          identity.on("close", () => {
+            if (!identity.currentUser()) {
+              requireLogin();
+            }
           });
 
           identity.on("logout", () => {
