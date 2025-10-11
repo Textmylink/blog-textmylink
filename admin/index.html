@@ -123,6 +123,35 @@
         z-index: auto !important;
         transform: none !important;
       }
+      #cms-mobile-nav-container .cms-mobile-nav > * {
+        margin: 0 !important;
+      }
+      #cms-mobile-nav-container .cms-mobile-nav * {
+        box-shadow: none !important;
+      }
+      #cms-mobile-nav-container .cms-mobile-nav div[role="presentation"],
+      #cms-mobile-nav-container .cms-mobile-nav div[role="presentation"] > *,
+      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiDrawer"],
+      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiPaper"],
+      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiModal"],
+      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiBackdrop"] {
+        position: static !important;
+        inset: auto !important;
+        transform: none !important;
+        height: auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        opacity: 1 !important;
+      }
+      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiBackdrop"] {
+        display: none !important;
+      }
+      #cms-mobile-nav-container .cms-mobile-nav [class*="MuiPaper"] > * {
+        background: transparent !important;
+      }
       #cms-mobile-nav-container .cms-mobile-nav ul {
         list-style: none;
         margin: 0;
@@ -358,10 +387,41 @@
         nav.classList.add("cms-mobile-nav");
 
         const mount = ensureNavMount(root);
-        if (!nav.dataset.cmsMobileMoved) {
+        const wrappers = [
+          nav.closest("[class*='MuiDrawer-root']"),
+          nav.closest("div[role='presentation']"),
+          nav.parentElement,
+        ];
+
+        let moved = false;
+        for (const wrapper of wrappers) {
+          if (!wrapper || wrapper === document.body || wrapper === document.documentElement) {
+            continue;
+          }
+          if (!wrapper.contains(nav)) {
+            continue;
+          }
+          if (!wrapper.dataset.cmsMobileMoved) {
+            mount.appendChild(wrapper);
+            wrapper.dataset.cmsMobileMoved = "true";
+          }
+          flattenNavElement(wrapper);
+          moved = true;
+          break;
+        }
+
+        if (!moved && !nav.dataset.cmsMobileMoved) {
           mount.appendChild(nav);
           nav.dataset.cmsMobileMoved = "true";
         }
+
+        const flattenTargets = [
+          nav,
+          nav.parentElement,
+          nav.closest("[class*='MuiPaper']"),
+          nav.closest("div[role='presentation']"),
+        ];
+        flattenTargets.forEach(flattenNavElement);
 
         if (!nav.dataset.cmsMobileBound) {
           nav.dataset.cmsMobileBound = "true";
@@ -373,6 +433,29 @@
         }
 
         updateNavState();
+      }
+
+      function flattenNavElement(element) {
+        if (!element || element === document.body || element === document.documentElement) {
+          return;
+        }
+
+        element.style.position = "static";
+        element.style.top = "";
+        element.style.right = "";
+        element.style.bottom = "";
+        element.style.left = "";
+        element.style.transform = "none";
+        element.style.height = "auto";
+        element.style.maxHeight = "none";
+        element.style.width = "100%";
+        element.style.maxWidth = "none";
+        element.style.boxShadow = "none";
+        element.style.background = "transparent";
+        element.style.margin = "0";
+        element.style.padding = element.id === "cms-mobile-nav" ? "0" : "";
+        element.style.zIndex = "";
+        element.style.opacity = element.id === "cms-mobile-nav" ? "" : "1";
       }
 
       function ensureNavMount(root) {
