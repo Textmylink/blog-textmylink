@@ -101,15 +101,31 @@
         box-sizing: border-box;
         width: 100%;
       }
+      #cms-mobile-nav-container[data-cms-visible="false"] {
+        display: none !important;
+        padding: 0;
+        border: 0;
+      }
+      #cms-mobile-nav-container[data-cms-visible="false"] .cms-mobile-nav,
+      #cms-mobile-nav-container[data-cms-visible="false"] [data-cms-mobile-wrapper="true"] {
+        display: none !important;
+      }
       #cms-mobile-nav-container[hidden] {
         display: none !important;
       }
       #cms-mobile-nav-container .cms-mobile-nav {
-        display: none;
+        display: none !important;
       }
       body.cms-nav-open #cms-mobile-nav-container .cms-mobile-nav,
       body.cms-collections-open #cms-mobile-nav-container .cms-mobile-nav {
-        display: block;
+        display: block !important;
+      }
+      #cms-mobile-nav-container [data-cms-mobile-wrapper="true"] {
+        display: none !important;
+      }
+      body.cms-nav-open #cms-mobile-nav-container [data-cms-mobile-wrapper="true"],
+      body.cms-collections-open #cms-mobile-nav-container [data-cms-mobile-wrapper="true"] {
+        display: block !important;
       }
       #cms-mobile-nav-container .cms-mobile-nav,
       #cms-mobile-nav-container [data-testid="collection-sidebar"],
@@ -157,6 +173,11 @@
       }
       #cms-mobile-nav-container .cms-mobile-nav [class*="MuiPaper"] > * {
         background: transparent !important;
+      }
+      #nc-root.cms-mobile-root [data-testid="collection-sidebar"],
+      #nc-root.cms-mobile-root nav[aria-label="Collections"],
+      #nc-root.cms-mobile-root aside[aria-label="Collections"] {
+        display: none !important;
       }
       #cms-mobile-nav-container .cms-mobile-nav ul {
         list-style: none;
@@ -411,6 +432,10 @@
             mount.appendChild(wrapper);
             wrapper.dataset.cmsMobileMoved = "true";
             wrapper.dataset.cmsMobileWrapper = "true";
+            wrapper.dataset.cmsVisible = document.body.classList.contains("cms-nav-open") ||
+              document.body.classList.contains("cms-collections-open")
+              ? "true"
+              : "false";
           }
           flattenNavElement(wrapper);
           moved = true;
@@ -421,6 +446,10 @@
           mount.appendChild(nav);
           nav.dataset.cmsMobileMoved = "true";
           nav.dataset.cmsMobileWrapper = "true";
+          nav.dataset.cmsVisible = document.body.classList.contains("cms-nav-open") ||
+            document.body.classList.contains("cms-collections-open")
+            ? "true"
+            : "false";
         }
 
         const flattenTargets = [
@@ -485,7 +514,10 @@
           mount.id = "cms-mobile-nav-container";
           mount.setAttribute("aria-hidden", "true");
           mount.hidden = true;
+          mount.dataset.cmsVisible = "false";
           document.body.insertBefore(mount, root);
+        } else if (!mount.dataset.cmsVisible) {
+          mount.dataset.cmsVisible = mount.hidden ? "false" : "true";
         }
         return mount;
       }
@@ -523,9 +555,11 @@
           if (open || collectionsOpen) {
             navContainer.hidden = false;
             navContainer.setAttribute("aria-hidden", "false");
+            navContainer.dataset.cmsVisible = "true";
           } else {
             navContainer.hidden = true;
             navContainer.setAttribute("aria-hidden", "true");
+            navContainer.dataset.cmsVisible = "false";
           }
 
           const nav = navContainer.querySelector("#cms-mobile-nav");
@@ -534,11 +568,13 @@
             nav.setAttribute("aria-hidden", showNav ? "false" : "true");
             nav.hidden = !showNav;
             nav.style.display = showNav ? "" : "none";
+            nav.dataset.cmsVisible = showNav ? "true" : "false";
             const wrappers = navContainer.querySelectorAll("[data-cms-mobile-wrapper='true']");
             wrappers.forEach((wrapper) => {
               wrapper.hidden = !showNav;
               wrapper.style.display = showNav ? "" : "none";
               wrapper.setAttribute("aria-hidden", showNav ? "false" : "true");
+              wrapper.dataset.cmsVisible = showNav ? "true" : "false";
             });
           }
         }
