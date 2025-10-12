@@ -88,7 +88,10 @@
           nav: null,
           panel: null,
           topBar: null,
-          fab: null
+          fab: null,
+          mediaLink: null,
+          collectionList: null,
+          collectionTable: null
         };
 
         let applyScheduled = false;
@@ -104,8 +107,10 @@
           if (isMobile) {
             ensureMobileTopBar(state);
             ensureMobileCreateFab(root, state);
+            ensureMobileMediaShortcut(state);
           } else {
             removeMobileCreateFab(state);
+            removeMobileMediaShortcut(state);
             resetMobileTopBar(state);
           }
 
@@ -182,8 +187,16 @@
             }
           }
 
-          if (!isMobile) {
+          if (isMobile) {
+            const table = findCollectionTable(root);
+            if (table) {
+              renderMobileCollectionList(table, state);
+            } else {
+              resetMobileCollectionList(state);
+            }
+          } else {
             setCollectionsOpen(false, state);
+            resetMobileCollectionList(state);
           }
         };
 
@@ -359,9 +372,21 @@
           state.button.remove();
           state.button = null;
         }
+        if (state.mediaLink) {
+          state.mediaLink.remove();
+          state.mediaLink = null;
+        }
         if (state.topBar) {
           state.topBar.remove();
           state.topBar = null;
+        }
+        if (state.collectionList) {
+          state.collectionList.remove();
+          state.collectionList = null;
+        }
+        if (state.collectionTable) {
+          resetMobileStyles(state.collectionTable);
+          state.collectionTable = null;
         }
       }
 
@@ -388,7 +413,14 @@
 
         const targetRoute = `#/collections/${encodeURIComponent(targetCollection)}/new`;
 
-        if (!state.fab || !document.body.contains(state.fab)) {
+        const topBar = ensureMobileTopBar(state);
+        if (!topBar) {
+          return;
+        }
+
+        const actionRow = ensureMobileToolbarPrimaryRow(topBar);
+
+        if (!state.fab || !actionRow.contains(state.fab)) {
           const fab = document.createElement("a");
           fab.id = "cms-mobile-create-post";
           fab.href = targetRoute;
@@ -396,12 +428,12 @@
           fab.setAttribute("role", "button");
           fab.setAttribute("aria-label", "Create a new blog post");
           fab.innerHTML =
-            '<span aria-hidden="true" class="cms-mobile-create-post__icon">＋</span><span>New Blog Post</span>';
+            '<span aria-hidden="true" class="cms-mobile-create-post__icon">＋</span><span>New Post</span>';
           fab.addEventListener("click", (event) => {
             event.preventDefault();
             window.location.hash = targetRoute;
           });
-          document.body.appendChild(fab);
+          actionRow.insertBefore(fab, actionRow.firstChild);
           state.fab = fab;
         }
 
@@ -416,6 +448,44 @@
         if (state.fab) {
           state.fab.remove();
           state.fab = null;
+        }
+      }
+
+      function ensureMobileToolbarPrimaryRow(topBar) {
+        let row = topBar.querySelector(".cms-mobile-toolbar__primary");
+        if (!row) {
+          row = document.createElement("div");
+          row.className = "cms-mobile-toolbar__primary";
+          topBar.insertBefore(row, topBar.firstChild);
+        }
+        return row;
+      }
+
+      function ensureMobileMediaShortcut(state) {
+        const topBar = ensureMobileTopBar(state);
+        if (!topBar) return;
+
+        const actionRow = ensureMobileToolbarPrimaryRow(topBar);
+
+        if (!state.mediaLink || !actionRow.contains(state.mediaLink)) {
+          const link = document.createElement("a");
+          link.id = "cms-mobile-media-link";
+          link.href = "#/media";
+          link.textContent = "Media";
+          link.className = "cms-mobile-media-link";
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            window.location.hash = "#/media";
+          });
+          actionRow.appendChild(link);
+          state.mediaLink = link;
+        }
+      }
+
+      function removeMobileMediaShortcut(state) {
+        if (state.mediaLink) {
+          state.mediaLink.remove();
+          state.mediaLink = null;
         }
       }
 
@@ -512,6 +582,204 @@
 
         return "blog";
       }
+
+      function findCollectionTable(root) {
+        const selectors = [
+          "[data-testid='collection-list'] table",
+          "[data-testid='collection-table'] table",
+          "[data-testid='entry-list'] table",
+          "main table"
+        ];
+        for (const selector of selectors) {
+          const table = root.querySelector(selector);
+          if (table && table.querySelector("tbody tr")) {
+            return table;
+          }
+        }
+        return null;
+      }
+
+      function renderMobileCollectionList(table, state) {
+        if (!table || !table.parentNode) {
+          resetMobileCollectionList(state);
+          return;
+        }
+
+        const rows = Array.from(table.querySelectorAll("tbody tr"));
+        if (rows.length === 0) {
+          resetMobileCollectionList(state);
+          resetMobileStyles(table);
+          return;
+        }
+
+        const container = ensureMobileCollectionListContainer(table, state);
+        container.innerHTML = "";
+
+        const groups = new Map();
+        const order = [];
+
+        const ensureGroup = (key, label) => {
+          if (!groups.has(key)) {
+            const section = document.createElement("section");
+            section.className = "cms-mobile-entry-section";
+            section.dataset.sectionKey = key;
+
+            const heading = document.createElement("h2");
+            heading.className = "cms-mobile-entry-section__heading";
+            heading.textContent = label;
+            section.appendChild(heading);
+
+            const list = document.createElement("div");
+            list.className = "cms-mobile-entry-section__list";
+            section.appendChild(list);
+
+            groups.set(key, { section, list });
+            order.push(key);
+          }
+          return groups.get(key);
+        };
+
+        const STATUS_LABELS = {
+          draft: "Drafts",
+          pending: "In Review",
+          published: "Published",
+          other: "Posts"
+        };
+
+        for (const row of rows) {
+          const entry = extractEntryData(row);
+          if (!entry) continue;
+
+          const key = entry.status && STATUS_LABELS[entry.status] ? entry.status : "other";
+          const group = ensureGroup(key, STATUS_LABELS[key]);
+          group.list.appendChild(entry.element);
+        }
+
+        const preferredOrder = ["draft", "pending", "published", "other"];
+        let appendedSections = false;
+        preferredOrder.forEach((key) => {
+          if (groups.has(key)) {
+            container.appendChild(groups.get(key).section);
+            appendedSections = true;
+          }
+        });
+
+        order.forEach((key) => {
+          if (!preferredOrder.includes(key) && groups.has(key)) {
+            container.appendChild(groups.get(key).section);
+            appendedSections = true;
+          }
+        });
+
+        if (!appendedSections) {
+          resetMobileCollectionList(state);
+          resetMobileStyles(table);
+          return;
+        }
+
+        applyMobileStyles(table, { display: "none" });
+        state.collectionTable = table;
+      }
+
+      function ensureMobileCollectionListContainer(table, state) {
+        if (state.collectionList && state.collectionList.parentElement) {
+          return state.collectionList;
+        }
+        const container = document.createElement("div");
+        container.id = "cms-mobile-collection-list";
+        table.parentNode.insertBefore(container, table);
+        state.collectionList = container;
+        return container;
+      }
+
+      function resetMobileCollectionList(state) {
+        if (state.collectionList) {
+          state.collectionList.remove();
+          state.collectionList = null;
+        }
+        if (state.collectionTable) {
+          resetMobileStyles(state.collectionTable);
+          state.collectionTable = null;
+        }
+      }
+
+      function extractEntryData(row) {
+        if (!row) return null;
+
+        const link = row.querySelector("a[href^='#/collections/']");
+        const title = (link ? link.textContent : row.textContent || "").trim();
+        if (!title) {
+          return null;
+        }
+
+        let status = (row.getAttribute("data-status") || "").toLowerCase();
+        if (!status) {
+          const statusEl = row.querySelector(
+            "[data-testid*='status'], [class*='Status'], [class*='status'], span"
+          );
+          if (statusEl) {
+            status = (statusEl.textContent || "").trim().toLowerCase();
+          } else {
+            const textCandidates = Array.from(row.querySelectorAll("td"));
+            for (const cell of textCandidates) {
+              const text = (cell.textContent || "").trim().toLowerCase();
+              if (["draft", "published", "pending"].includes(text)) {
+                status = text;
+                break;
+              }
+            }
+          }
+        }
+
+        let dateText = "";
+        const timeEl = row.querySelector("time");
+        if (timeEl) {
+          dateText = (timeEl.textContent || "").trim();
+        } else {
+          const cells = Array.from(row.querySelectorAll("td"));
+          if (cells.length > 1) {
+            dateText = (cells[cells.length - 1].textContent || "").trim();
+          }
+        }
+
+        const card = document.createElement("a");
+        card.className = "cms-mobile-entry-card";
+        card.href = link ? link.getAttribute("href") : "#";
+        card.setAttribute("role", "link");
+        card.innerHTML =
+          `<span class="cms-mobile-entry-card__title">${escapeHtml(title)}</span>` +
+          (dateText
+            ? `<span class="cms-mobile-entry-card__meta">${escapeHtml(dateText)}</span>`
+            : "") +
+          (status
+            ? `<span class="cms-mobile-entry-card__status" data-status="${escapeHtml(status)}">${escapeHtml(
+                capitalizeStatus(status)
+              )}</span>`
+            : "");
+
+        card.addEventListener("click", (event) => {
+          event.preventDefault();
+          if (link) {
+            window.location.hash = link.getAttribute("href");
+          }
+        });
+
+        return { element: card, status };
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function capitalizeStatus(status) {
+        if (!status) return "";
+        return status.charAt(0).toUpperCase() + status.slice(1);
+      }
     </script>
   </body>
 </html>
@@ -530,7 +798,7 @@
 
         #nc-root {
           overflow-x: hidden;
-          padding-top: 5.75rem;
+          padding-top: 7rem;
         }
 
         #cms-mobile-toolbar {
@@ -540,30 +808,79 @@
           right: 0;
           z-index: 1003;
           display: flex;
-          justify-content: flex-end;
-          gap: 0.75rem;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0.85rem;
+          padding: 0.85rem 1rem 0.9rem;
+          background: rgba(248, 250, 252, 0.92);
+          backdrop-filter: blur(16px);
+          border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        #cms-mobile-toolbar .cms-mobile-toolbar__primary {
+          display: flex;
           align-items: center;
-          padding: 0.65rem 0.75rem;
-          background: rgba(248, 250, 252, 0.96);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+          gap: 0.75rem;
+        }
+
+        #cms-mobile-create-post {
+          position: relative;
+          display: none;
+          flex: 1 1 auto;
+          justify-content: center;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.85rem 1.1rem;
+          border-radius: 14px;
+          border: none;
+          background: #2563eb;
+          color: #fff;
+          font-weight: 600;
+          font-size: 1rem;
+          box-shadow: 0 12px 30px rgba(37, 99, 235, 0.24);
+          text-decoration: none;
+          cursor: pointer;
+        }
+
+        #cms-mobile-create-post span[aria-hidden="true"] {
+          font-size: 1.2rem;
+          line-height: 1;
+        }
+
+        #cms-mobile-create-post.visible {
+          display: inline-flex;
+        }
+
+        #cms-mobile-media-link {
+          flex: 0 0 auto;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #2563eb;
+          text-decoration: none;
+          margin-left: auto;
+        }
+
+        #cms-mobile-media-link:active,
+        #cms-mobile-media-link:focus {
+          text-decoration: underline;
         }
 
         #cms-mobile-collections-button {
           position: static;
           margin: 0;
-          flex: 0 0 auto;
+          width: 100%;
           display: inline-flex;
           align-items: center;
-          gap: 0.4rem;
-          padding: 0.55rem 0.9rem;
-          border-radius: 999px;
-          border: none;
-          background: #1f2937;
-          color: #fff;
+          justify-content: center;
+          gap: 0.45rem;
+          padding: 0.7rem 1rem;
+          border-radius: 12px;
+          border: 1px solid rgba(148, 163, 184, 0.4);
+          background: rgba(241, 245, 249, 0.8);
+          color: #0f172a;
           font-size: 0.9rem;
           font-weight: 600;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+          box-shadow: none;
           cursor: pointer;
         }
 
@@ -573,36 +890,9 @@
         }
 
         body.cms-collections-open #cms-mobile-collections-button {
-          background: #3730a3;
-        }
-
-        #cms-mobile-create-post {
-          position: fixed;
-          right: 1rem;
-          bottom: calc(1.15rem + env(safe-area-inset-bottom, 0));
-          z-index: 1003;
-          display: none;
-          align-items: center;
-          gap: 0.45rem;
-          padding: 0.65rem 1.15rem;
-          border-radius: 999px;
-          border: none;
-          background: #2563eb;
-          color: #fff;
-          font-weight: 600;
-          font-size: 0.95rem;
-          box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
-          text-decoration: none;
-          cursor: pointer;
-        }
-
-        #cms-mobile-create-post span[aria-hidden="true"] {
-          font-size: 1.15rem;
-          line-height: 1;
-        }
-
-        #cms-mobile-create-post.visible {
-          display: inline-flex;
+          border-color: rgba(37, 99, 235, 0.45);
+          background: rgba(219, 234, 254, 0.9);
+          color: #1d4ed8;
         }
 
         #cms-mobile-collections-overlay {
@@ -634,6 +924,93 @@
 
         body.cms-collections-open [data-mobile-collections-panel] {
           transform: translateX(0);
+        }
+
+        #cms-mobile-collection-list {
+          padding: 0 1rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+
+        .cms-mobile-entry-section {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .cms-mobile-entry-section__heading {
+          margin: 0;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+
+        .cms-mobile-entry-section__list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .cms-mobile-entry-card {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          padding: 0.9rem 1rem;
+          border-radius: 14px;
+          background: #ffffff;
+          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+          text-decoration: none;
+          color: inherit;
+          border: 1px solid rgba(226, 232, 240, 0.7);
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .cms-mobile-entry-card:active {
+          transform: translateY(1px);
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .cms-mobile-entry-card:focus-visible {
+          outline: 2px solid #2563eb;
+          outline-offset: 2px;
+        }
+
+        .cms-mobile-entry-card__title {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #0f172a;
+        }
+
+        .cms-mobile-entry-card__meta {
+          font-size: 0.85rem;
+          color: #475569;
+        }
+
+        .cms-mobile-entry-card__status {
+          align-self: flex-start;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 0.25rem 0.55rem;
+          border-radius: 999px;
+          background: #e2e8f0;
+          color: #475569;
+          text-transform: capitalize;
+        }
+
+        .cms-mobile-entry-card__status[data-status="draft"] {
+          background: #fee2e2;
+          color: #b91c1c;
+        }
+
+        .cms-mobile-entry-card__status[data-status="pending"] {
+          background: #fef3c7;
+          color: #c2410c;
+        }
+
+        .cms-mobile-entry-card__status[data-status="published"] {
+          background: #dcfce7;
+          color: #15803d;
         }
 
         #nc-root header[role="banner"],
