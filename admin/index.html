@@ -29,12 +29,14 @@
           window.CMS.init();
           setupIdentityUI();
           setupMobileEnhancements();
+          setupLinkToolbarEnhancements();
           return;
         }
         if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
           window.NetlifyCmsApp.init();
           setupIdentityUI();
           setupMobileEnhancements();
+          setupLinkToolbarEnhancements();
           return;
         }
         const message = "Netlify CMS failed to load. Check the browser console for details.";
@@ -214,6 +216,242 @@
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
             setCollectionsOpen(false, state);
+          }
+        });
+      }
+
+      function setupLinkToolbarEnhancements() {
+        const processedButtons = new WeakSet();
+
+        const ensureListeners = () => {
+          const root = document.getElementById("nc-root");
+          if (!root) {
+            return;
+          }
+
+          const editorPanes = root.querySelectorAll(
+            "[data-testid='editor-pane'], [class*='EditorPane'], main"
+          );
+
+          editorPanes.forEach((pane) => {
+            const linkButtons = pane.querySelectorAll(
+              "button[aria-label*='link' i], button[title*='link' i], button[data-testid*='link']"
+            );
+
+            linkButtons.forEach((button) => {
+              const labelText = (
+                button.getAttribute("aria-label") ||
+                button.getAttribute("title") ||
+                button.getAttribute("data-testid") ||
+                button.textContent ||
+                ""
+              ).toLowerCase();
+              if (!labelText.includes("link") || labelText.includes("unlink") || labelText.includes("remove")) {
+                return;
+              }
+
+              if (processedButtons.has(button)) {
+                return;
+              }
+
+              const handler = (event) => {
+                handleLinkButtonClick(event, pane);
+              };
+
+              button.addEventListener("click", handler, true);
+              processedButtons.add(button);
+            });
+          });
+        };
+
+        const handleLinkButtonClick = (event, pane) => {
+          const targetPane =
+            event.currentTarget.closest("[data-testid='editor-pane'], [class*='EditorPane'], main") ||
+            pane;
+          if (!targetPane) {
+            return;
+          }
+
+          const cmElement = targetPane.querySelector(".CodeMirror");
+          const cmVisible = cmElement && isElementVisible(cmElement);
+          const codeMirror = cmVisible && cmElement.CodeMirror;
+
+          if (codeMirror) {
+            const selection = codeMirror.getSelection();
+            if (selection && selection.length > 0) {
+              return; // allow default URL-only behavior
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+
+            const linkDetails = promptForLinkDetails();
+            if (!linkDetails) {
+              codeMirror.focus();
+              return;
+            }
+
+            const markdownLink = formatMarkdownLink(linkDetails);
+            codeMirror.replaceSelection(markdownLink);
+            codeMirror.focus();
+            return;
+          }
+
+          const editor = findRichTextEditor(targetPane);
+          if (!editor) {
+            return;
+          }
+
+          const selection = window.getSelection();
+          if (
+            selection &&
+            !selection.isCollapsed &&
+            targetPane.contains(selection.anchorNode) &&
+            targetPane.contains(selection.focusNode)
+          ) {
+            return; // preserve default behavior when text is selected
+          }
+
+          const savedRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
+
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+
+          const linkDetails = promptForLinkDetails();
+          if (!linkDetails) {
+            editor.focus();
+            return;
+          }
+
+          editor.focus();
+          requestAnimationFrame(() => {
+            restoreRichTextSelection(savedRange, editor);
+            insertRichTextLink(linkDetails, editor);
+          });
+        };
+
+        const observer = new MutationObserver(() => ensureListeners());
+        observer.observe(document.body, { childList: true, subtree: true });
+        ensureListeners();
+      }
+
+      function promptForLinkDetails() {
+        const text = window.prompt("Link text", "");
+        if (text === null) {
+          return null;
+        }
+        const trimmedText = text.trim();
+        if (!trimmedText) {
+          return null;
+        }
+
+        const url = window.prompt("Link URL", "https://");
+        if (url === null) {
+          return null;
+        }
+        const trimmedUrl = url.trim();
+        if (!trimmedUrl) {
+          return null;
+        }
+
+        return { text: trimmedText, url: trimmedUrl };
+      }
+
+      function formatMarkdownLink(details) {
+        const escapedText = details.text.replace(/[\[\]]/g, (char) => `\\${char}`);
+        const escapedUrl = details.url.replace(/[()]/g, (char) => `\\${char}`);
+        return `[${escapedText}](${escapedUrl})`;
+      }
+
+      function isElementVisible(element) {
+        return !!(element.offsetParent || element.getClientRects().length);
+      }
+
+      function findRichTextEditor(pane) {
+        const editor =
+          pane.querySelector("[data-slate-editor='true']") ||
+          pane.querySelector("[contenteditable='true']");
+        if (editor && isElementVisible(editor)) {
+          return editor;
+        }
+        return null;
+      }
+
+      function restoreRichTextSelection(range, editor) {
+        if (!range) {
+          return;
+        }
+        const selection = window.getSelection();
+        if (!selection) {
+          return;
+        }
+        if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) {
+          return;
+        }
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      function insertRichTextLink(details, editor) {
+        const selection = window.getSelection();
+        const html = `<a href="${escapeAttribute(details.url)}">${escapeHtml(details.text)}</a>`;
+
+        if (typeof document.queryCommandSupported === "function" && document.queryCommandSupported("insertHTML")) {
+          document.execCommand("insertHTML", false, html);
+          return;
+        }
+
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          const temp = document.createElement("a");
+          temp.setAttribute("href", details.url);
+          temp.textContent = details.text;
+          range.insertNode(temp);
+          range.setStartAfter(temp);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } else {
+          const temp = document.createElement("a");
+          temp.setAttribute("href", details.url);
+          temp.textContent = details.text;
+          editor.appendChild(temp);
+        }
+      }
+
+      function escapeHtml(value) {
+        return value.replace(/[&<>]/g, (char) => {
+          switch (char) {
+            case "&":
+              return "&amp;";
+            case "<":
+              return "&lt;";
+            case ">":
+              return "&gt;";
+            default:
+              return char;
+          }
+        });
+      }
+
+      function escapeAttribute(value) {
+        return value.replace(/[&"'<>]/g, (char) => {
+          switch (char) {
+            case "&":
+              return "&amp;";
+            case '"':
+              return "&quot;";
+            case "'":
+              return "&#39;";
+            case "<":
+              return "&lt;";
+            case ">":
+              return "&gt;";
+            default:
+              return char;
           }
         });
       }
