@@ -22,6 +22,7 @@
       window.process = window.process || { env: { NODE_ENV: "production" } };
       window.CMS_MANUAL_INIT = true;
     </script>
+    <script src="https://unpkg.com/turndown@7.1.3/dist/turndown.js"></script>
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
     <script>
       (function initCms() {
@@ -88,7 +89,12 @@
           nav: null,
           panel: null,
           topBar: null,
-          fab: null
+          fab: null,
+          markdownToolbar: null,
+          markdownScrollTarget: null,
+          richPasteElement: null,
+          richPasteHandler: null,
+          turndownService: null
         };
 
         let applyScheduled = false;
@@ -181,6 +187,14 @@
               }
             }
           }
+
+          if (isMobile) {
+            ensureMobileEditorToolbar(root, state);
+          } else {
+            resetMobileEditorToolbar(state);
+          }
+
+          ensureRichPaste(root, state);
 
           if (!isMobile) {
             setCollectionsOpen(false, state);
@@ -380,8 +394,18 @@
           );
         };
 
+        const isEditorRoute = () => {
+          const hash = window.location.hash || "";
+          if (!hash) return false;
+          const normalized = hash.toLowerCase();
+          if (!normalized.startsWith("#/collections/")) {
+            return false;
+          }
+          return /#\/collections\/[^/]+\/(new|entries\/)/.test(normalized);
+        };
+
         const targetCollection = getDefaultCollectionName();
-        if (!targetCollection || isAuthRoute()) {
+        if (!targetCollection || isAuthRoute() || isEditorRoute()) {
           removeMobileCreateFab(state);
           return;
         }
@@ -471,6 +495,245 @@
           }
         }
         return null;
+      }
+
+      function findBodyControl(root) {
+        if (!root) return null;
+        const selectors = [
+          "[data-field='body']",
+          "[data-testid='field-body']",
+          "[data-field-path='body']",
+          "[id*='body-field']",
+          "[class*='MarkdownControl']"
+        ];
+        for (const selector of selectors) {
+          const match = root.querySelector(selector);
+          if (match) {
+            return match;
+          }
+        }
+        return null;
+      }
+
+      function ensureMobileEditorToolbar(root, state) {
+        const control = findBodyControl(root);
+        if (!control) {
+          resetMobileEditorToolbar(state);
+          return;
+        }
+
+        const toolbar =
+          control.querySelector(
+            ".nc-markdownEditor-toolbar, [class*='MarkdownToolbar'], .EasyMDEContainer .editor-toolbar"
+          ) || control.querySelector("[role='toolbar']");
+
+        if (!toolbar) {
+          resetMobileEditorToolbar(state);
+          return;
+        }
+
+        if (state.markdownToolbar && state.markdownToolbar !== toolbar) {
+          resetMobileEditorToolbar(state);
+        }
+
+        state.markdownToolbar = toolbar;
+        toolbar.classList.add("cms-mobile-markdown-toolbar--sticky");
+
+        const topBar = state.topBar || document.getElementById("cms-mobile-toolbar");
+        const offset = topBar ? Math.ceil(topBar.getBoundingClientRect().height || 0) : 0;
+        const topOffset = Math.max(offset, 0) + 12;
+
+        applyMobileStyles(toolbar, {
+          position: "sticky",
+          top: `${topOffset}px`,
+          zIndex: "1002",
+          background: "rgba(248, 250, 252, 0.97)",
+          backdropFilter: "blur(12px)",
+          padding: "0.5rem 0.75rem",
+          borderRadius: "0.65rem",
+          boxShadow: "0 12px 28px rgba(15, 23, 42, 0.12)",
+          marginBottom: "0.75rem"
+        });
+
+        const scrollTarget =
+          control.querySelector("textarea, [contenteditable='true']") ||
+          control.querySelector(".CodeMirror-scroll") ||
+          control;
+
+        if (scrollTarget) {
+          if (state.markdownScrollTarget && state.markdownScrollTarget !== scrollTarget) {
+            resetMobileStyles(state.markdownScrollTarget);
+          }
+          state.markdownScrollTarget = scrollTarget;
+          applyMobileStyles(scrollTarget, {
+            scrollMarginTop: `${topOffset + 24}px`
+          });
+        }
+      }
+
+      function resetMobileEditorToolbar(state) {
+        if (state.markdownToolbar) {
+          state.markdownToolbar.classList.remove("cms-mobile-markdown-toolbar--sticky");
+          resetMobileStyles(state.markdownToolbar);
+          state.markdownToolbar = null;
+        }
+        if (state.markdownScrollTarget) {
+          resetMobileStyles(state.markdownScrollTarget);
+          state.markdownScrollTarget = null;
+        }
+      }
+
+      function ensureRichPaste(root, state) {
+        if (!window.TurndownService) {
+          return;
+        }
+
+        const control = findBodyControl(root);
+        if (!control) {
+          resetRichPaste(state);
+          return;
+        }
+
+        if (state.richPasteElement === control && state.richPasteHandler) {
+          return;
+        }
+
+        resetRichPaste(state);
+
+        const handler = (event) => {
+          const clipboard = event.clipboardData || window.clipboardData;
+          if (!clipboard) {
+            return;
+          }
+
+          const html = clipboard.getData("text/html");
+          if (!html || !html.trim()) {
+            return;
+          }
+
+          const turndown = getTurndownService(state);
+          if (!turndown) {
+            return;
+          }
+
+          let markdown;
+          try {
+            markdown = turndown.turndown(html);
+          } catch (error) {
+            console.warn("Unable to convert pasted HTML to markdown:", error);
+            return;
+          }
+
+          if (!markdown) {
+            return;
+          }
+
+          const plain = clipboard.getData("text/plain") || "";
+          if (plain && markdown.trim() === plain.trim()) {
+            return;
+          }
+
+          event.preventDefault();
+          const target = event.target || control;
+          const inserted = insertMarkdownAtSelection(target, markdown);
+          if (!inserted) {
+            insertMarkdownAtSelection(control, markdown);
+          }
+        };
+
+        control.addEventListener("paste", handler, true);
+        state.richPasteElement = control;
+        state.richPasteHandler = handler;
+      }
+
+      function resetRichPaste(state) {
+        if (state.richPasteElement && state.richPasteHandler) {
+          state.richPasteElement.removeEventListener("paste", state.richPasteHandler, true);
+        }
+        state.richPasteElement = null;
+        state.richPasteHandler = null;
+      }
+
+      function getTurndownService(state) {
+        if (!window.TurndownService) {
+          return null;
+        }
+
+        if (!state.turndownService) {
+          const service = new window.TurndownService({ headingStyle: "atx" });
+          service.keep(["table", "thead", "tbody", "tr", "th", "td"]);
+          state.turndownService = service;
+        }
+
+        return state.turndownService;
+      }
+
+      function insertMarkdownAtSelection(target, text) {
+        if (!text) {
+          return false;
+        }
+
+        let activeTarget = target;
+        if (!activeTarget || activeTarget === document.body) {
+          activeTarget = document.activeElement || target;
+        }
+
+        if (!activeTarget) {
+          return false;
+        }
+
+        if (typeof activeTarget.focus === "function") {
+          activeTarget.focus();
+        }
+
+        const getCodeMirrorFrom = (node) => {
+          if (!node) return null;
+          if (node.CodeMirror) {
+            return node.CodeMirror;
+          }
+          if (typeof node.closest === "function") {
+            const cmElement = node.closest(".CodeMirror");
+            if (cmElement && cmElement.CodeMirror) {
+              return cmElement.CodeMirror;
+            }
+          }
+          return null;
+        };
+
+        const codeMirror = getCodeMirrorFrom(activeTarget);
+        if (codeMirror && typeof codeMirror.replaceSelection === "function") {
+          codeMirror.replaceSelection(text);
+          return true;
+        }
+
+        if (typeof activeTarget.value === "string") {
+          const start = activeTarget.selectionStart ?? activeTarget.value.length;
+          const end = activeTarget.selectionEnd ?? start;
+          const before = activeTarget.value.slice(0, start);
+          const after = activeTarget.value.slice(end);
+          activeTarget.value = `${before}${text}${after}`;
+          const cursor = before.length + text.length;
+          if (typeof activeTarget.setSelectionRange === "function") {
+            activeTarget.setSelectionRange(cursor, cursor);
+          }
+          activeTarget.dispatchEvent(new Event("input", { bubbles: true }));
+          return true;
+        }
+
+        const selection = window.getSelection && window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(document.createTextNode(text));
+          selection.collapseToEnd();
+          return true;
+        }
+
+        if (document.queryCommandSupported && document.queryCommandSupported("insertText")) {
+          return document.execCommand("insertText", false, text);
+        }
+
+        return false;
       }
 
       function getDefaultCollectionName() {
@@ -716,6 +979,17 @@
           left: 0 !important;
           right: 0 !important;
           margin: 0 !important;
+        }
+
+        #nc-root .cms-mobile-markdown-toolbar--sticky {
+          width: 100% !important;
+          box-sizing: border-box;
+        }
+
+        #nc-root [data-field="body"],
+        #nc-root [data-testid="field-body"],
+        #nc-root [data-field-path="body"] {
+          position: relative !important;
         }
 
         #nc-root [role="dialog"] .nc-media-library-content,
