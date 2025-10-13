@@ -82,13 +82,16 @@
 
       function setupMobileEnhancements() {
         const MOBILE_QUERY = window.matchMedia("(max-width: 900px)");
+        const MOBILE_TOOLBAR_OFFSET = "5.75rem";
+
         const state = {
           button: null,
           overlay: null,
           nav: null,
           panel: null,
           topBar: null,
-          fab: null
+          fab: null,
+          editorToolbar: null
         };
 
         let applyScheduled = false;
@@ -151,6 +154,13 @@
               resetMobileStyles(mainPane);
             }
           }
+
+          ensureMobileEditorToolbar({
+            mainPane,
+            state,
+            isMobile,
+            offset: MOBILE_TOOLBAR_OFFSET
+          });
 
           const modal = findMediaModal();
           if (modal) {
@@ -511,6 +521,54 @@
         }
 
         return "blog";
+      }
+
+      function ensureMobileEditorToolbar({ mainPane, state, isMobile, offset }) {
+        const cleanup = () => {
+          if (state.editorToolbar) {
+            resetMobileStyles(state.editorToolbar);
+            state.editorToolbar = null;
+          }
+        };
+
+        if (!isMobile || !mainPane) {
+          cleanup();
+          return;
+        }
+
+        const markdownWrapper = mainPane.querySelector(
+          ".nc-controlPane-markdown, .nc-controlPane-widget-markdown, [class*='MarkdownControl']"
+        );
+
+        if (!markdownWrapper) {
+          cleanup();
+          return;
+        }
+
+        const toolbar = markdownWrapper.querySelector(
+          ".nc-markdownToolbar, .nc-widgetToolbar, [class*='MarkdownToolbar'], [data-testid='markdown-toolbar'], [role='toolbar']"
+        );
+
+        if (!toolbar) {
+          cleanup();
+          return;
+        }
+
+        if (state.editorToolbar && state.editorToolbar !== toolbar) {
+          resetMobileStyles(state.editorToolbar);
+        }
+
+        state.editorToolbar = toolbar;
+
+        applyMobileStyles(toolbar, {
+          position: "sticky",
+          top: offset,
+          zIndex: "1002",
+          background: "rgba(248, 250, 252, 0.97)",
+          boxShadow: "0 6px 16px rgba(15, 23, 42, 0.12)",
+          backdropFilter: "blur(6px)",
+          marginBottom: "0.75rem"
+        });
       }
     </script>
   </body>
