@@ -19,7 +19,7 @@ There’s a moment in every wedding timeline when you realize… half your guest
 
 You’ve already extended the deadline once, your caterer is asking for final numbers, and your mom’s calling to ask if Aunt Bobbie ever replied.
 
-I’ve been there. We initially used TextMyLink to collect addresses for our save the dates and invitations. Later, we used it again to chase the people who never RSVP’d. Spoiler: they exist in every wedding.
+I’ve been there. We initially used [TextMyLink ](https://textmylink.com/)to collect addresses for our save the dates and invitations. Later, we used it again to chase the people who never RSVP’d. Spoiler: they exist in every wedding.
 
 It’s not that people are bad at replying. They’re just busy. They see the message, think “I’ll do it later,” and suddenly it’s three weeks later.
 
@@ -59,12 +59,11 @@ Direct but Polite:
 
 Hi! Our caterer’s asking for final numbers, so if you haven’t RSVP’d yet, could you do it by Friday? Thanks so much!
 
-
 **Why TextMyLink makes reminders easy**
 
 Sending 100 individual messages one by one is the definition of wedding chaos.
 
-With TextMyLink, you can send a reminder to everyone at once, privately. Each guest gets their own text and/or RSVP link — no messy group chats, no missed messages.
+With [TextMyLink](https://textmylink.com/), you can send a reminder to everyone at once, privately. Each guest gets their own text and/or RSVP link — no messy group chats, no missed messages.
 
 It’s quick, easy, and doesn’t come off as automated because you write it in your own voice. You can even see who’s replied, so you’re not guessing who’s still in RSVP limbo.
 
@@ -87,6 +86,6 @@ So take a deep breath, send that message, and move on to the fun stuff.
 
 You’ve got a wedding to plan, not a census to manage.
 
-Mass text reminders are easy with TextMyLink, so when your RSVP deadline starts creeping up, you can send one quick message and be done.
+Mass text reminders are easy with [TextMyLink](https://textmylink.com/), so when your RSVP deadline starts creeping up, you can send one quick message and be done.
 
 If you’re knee-deep in RSVPs right now, you’re doing great. A few gentle texts really can make the whole thing feel easier.
