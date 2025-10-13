@@ -36,7 +36,7 @@ They text back, “oh shoot, we moved!”
 
 Or they send “it’s 123 Main St, wait no, make that my parents’ address.”
 
-That’s why it helps to keep your ask short, kind, and clear… and to use a system like TextMyLink that keeps everything organized (instead of fifty different text threads).
+That’s why it helps to keep your ask short, kind, and clear… and to use a system like [TextMyLink ](https://textmylink.com/)that keeps everything organized (instead of fifty different text threads).
 
 **What to actually say**
 
@@ -52,14 +52,14 @@ If you want to sound a little more formal:
 
 If you’d rather skip the awkwardness altogether:
 
-“Hey! We’re collecting addresses for our wedding, could you please fill in your information in this link below? TextMyLink.com/YourEventName”
+“Hey! We’re collecting addresses for our wedding, could you please fill in your information in this link below? [TextMyLink.com/YourEventName](https://textmylink.com/mywedding)”
 
 Or
 
 “Hey, can you fill in the link below so we can get your address? Formal invitation to follow! \
-TextMyLink.com/YourEventName
+[TextMyLink.com/YourEventName](https://textmylink.com/mywedding)
 
-The truth is, no one minds being asked — they just need an easy way to respond. That’s why I always tell couples to make it one-click simple with TextMyLink.
+The truth is, no one minds being asked — they just need an easy way to respond. That’s why I always tell couples to make it one-click simple with [TextMyLink](https://textmylink.com/).
 
 **A few etiquette tips (learned the hard way)**
 
@@ -79,11 +79,11 @@ A week later, a gentle nudge works:
 
 4. Keep it organized.
 
-Whether you’re using a spreadsheet or TextMyLink, have one master list where everything lands automatically. The less copy-pasting, the better.
+Whether you’re using a spreadsheet or [TextMyLink](https://textmylink.com/), have one master list where everything lands automatically. The less copy-pasting, the better.
 
 **My personal favorite approach**
 
-When we did our wedding, I used TextMyLink and sent one simple mass text.
+When we did our wedding, I used [TextMyLink ](https://textmylink.com/)and sent one simple mass text.
 
 No group chat chaos, no losing addresses in screenshots.
 
