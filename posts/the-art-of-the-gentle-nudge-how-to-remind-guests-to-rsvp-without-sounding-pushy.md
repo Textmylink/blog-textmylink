@@ -88,4 +88,4 @@ You’ve got a wedding to plan, not a census to manage.
 
 Mass text reminders are easy with [TextMyLink](https://textmylink.com/), so when your RSVP deadline starts creeping up, you can send one quick message and be done.
 
-If you’re knee-deep in RSVPs right now, you’re doing great. A few gentle texts really can make the whole thing feel easier.
+If you’re knee-deep in RSVPs right now, you’re doing great. A few gentle texts really can make the whole thing feel easier. These post might also help with [how to ask for addresses](https://blog.textmylink.com/posts/how-to-ask-for-addresses-politely-without-sounding-like-a-robot/), a [simple timeline for addresses](https://blog.textmylink.com/posts/when-to-collect-wedding-addresses-and-everything-else-that-sneaks-up-on-you/), and [how to actually addresses your invitations](https://blog.textmylink.com/posts/how-to-actually-address-wedding-invitations-without-second-guessing-yourself/).
