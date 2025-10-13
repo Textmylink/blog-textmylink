@@ -16,13 +16,11 @@ layout: post.njk
 ---
 It started with a simple text: 
 
-
 “Hey, what’s your address? I’m sending wedding invites.”
-
 
 I sent it back without thinking much of it. Then I replied again, asking about details — his venue, how excited he was, how it was all coming together. Somewhere in that conversation, it hit me… he must have sent this same message to fifty people.
 
-That tiny moment — a groom trying to collect addresses — was the spark for **TextMyLink**.
+That tiny moment — a groom trying to collect addresses — was the spark for **[TextMyLink](https://textmylink.com/)**.
 
 ## The chaos behind “Hey, what’s your address?”
 
@@ -40,7 +38,7 @@ I was that guy now — getting ready to send the same message over and over, ret
 
 So I built something to fix it.
 
-TextMyLink started as a weekend project between me and my fiancée (now wife). We didn’t set out to start a business. We just wanted a simple way to text everyone one link, have them fill out their info, and be done. No chasing. No spreadsheets.
+[TextMyLink ](https://textmylink.com/)started as a weekend project between me and my fiancée (now wife). We didn’t set out to start a business. We just wanted a simple way to text everyone one link, have them fill out their info, and be done. No chasing. No spreadsheets.
 
 We used it for our own wedding. It worked beautifully. And somewhere between sending invites and planning seating charts, we realized… this could help other couples too.
 
@@ -48,7 +46,7 @@ We used it for our own wedding. It worked beautifully. And somewhere between sen
 
 Most apps out there were made by companies who never had to actually *use* them. We built ours mid-planning, between RSVP lists and late-night coffee. Every feature came from a real moment — like realizing we forgot someone’s plus-one name or needing to send a reminder text the night before.
 
-That’s the whole point of **TextMyLink**: *real people solving real wedding chaos.*
+That’s the whole point of **[TextMyLink](https://textmylink.com/)**: *real people solving real wedding chaos.*
 
 It’s not fancy. It’s not trying to be. It’s just the easiest way to collect addresses, track RSVPs, and send updates without losing your mind (or your spreadsheet).
 
