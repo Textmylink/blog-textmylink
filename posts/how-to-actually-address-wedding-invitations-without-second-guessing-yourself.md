@@ -13,10 +13,10 @@ image: /uploads/d22df3a3-8d19-4788-9413-33f8d5aaa189.png
 author: Daniel Schulman
 layout: post.njk
 ---
-The[](https://www.textmylink.com) first time I tried to address a wedding envelope, I froze.
+The[](<>) first time I tried to address a wedding envelope, I froze.
 
 It felt like taking a test I didn’t study for.
-\
+
 Do I write “Mr. and Mrs.” or just their names? What about my friend who just got engaged? Or the couple that’s been together for eight years but not married?
 
 I remember sitting there, pen in hand, thinking, why didn’t anyone warn me this was the hardest part?
@@ -57,6 +57,13 @@ Ms. Emily Cho
 
 Use their full professional title first — it shows respect.
 
+
+**Engaged Couples:**
+
+The Future Mr. And Mrs. Parker
+
+(They get a kick out of this)
+
 **Real Talk: No One’s Keeping Score**
 
 Unless you’re addressing envelopes for The Met Gala, even though it feels like it, no one’s grading your commas.
@@ -65,11 +72,12 @@ If you’re mixing modern and traditional styles, that’s fine. Write names in 
 
 Ours was formal black tie, so we went traditional. There’s something about seeing “Mr. and Mrs.” in fancy script that fits the tuxedos and champagne tower vibe. Still, by the end, we were tempted to just write “You know who you are” and call it a day.
 
-**Extra Tips That Actually Make Life Easier**
+**Extra Tips That Actually Make Life Easier:**
 
+\
 1. Use your guest list as your master reference.
 
-When you collect addresses with [TextMyLink](https://www.textmylink.com)[](www.textmylink.com), export the list and use it to double-check spellings and titles before printing. It saves hours of “wait, did we invite both of them?” moments.
+When you collect addresses with [TextMyLink](<>)[](<>), export the list and use it to double-check spellings and titles before printing. It saves hours of “wait, did we invite both of them?” moments.
 
 2. Hand-address or print?
 
@@ -81,7 +89,7 @@ It looks cleaner and prevents postal ink smudges on the front. Plus, if any invi
 
 4. Always order extra envelopes.
 
-You’ll mess up at least a few — everyone does. Order 10–15% more than your guest count just to be safe.
+You’ll mess up at least a few — everyone does. Order 10–15% more than your guest count just to be safe. 
 
 5. Check postage before buying 200 stamps.
 
@@ -115,4 +123,4 @@ You’re literally writing out the names of everyone who matters to you. That’
 
 So take your time, sip something calming, and remind yourself — this isn’t a test. It’s just a stack of love letters waiting to be sent.
 
-If you’re still collecting those addresses check out our post on [timelines ](https://blog.textmylink.com/posts/when-to-collect-wedding-addresses-and-everything-else-that-sneaks-up-on-you/)and [how to ask for addresses](https://blog.textmylink.com/posts/how-to-ask-for-addresses-politely-without-sounding-like-a-robot/).
+If you’re still collecting those addresses check out our post on [timelines ](<>)and [how to ask for addresses](<>).
