@@ -211,6 +211,7 @@
           MOBILE_QUERY.addListener(scheduleApply);
         }
         window.addEventListener("resize", scheduleApply, { passive: true });
+        window.addEventListener("hashchange", scheduleApply);
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
             setCollectionsOpen(false, state);
@@ -380,8 +381,18 @@
           );
         };
 
+        const isEditorRoute = () => {
+          const hash = window.location.hash || "";
+          if (!hash) {
+            return false;
+          }
+          const normalized = hash.toLowerCase();
+          const cleanHash = normalized.split(/[?#]/)[0];
+          return cleanHash.endsWith("/new") || cleanHash.includes("/entries/");
+        };
+
         const targetCollection = getDefaultCollectionName();
-        if (!targetCollection || isAuthRoute()) {
+        if (!targetCollection || isAuthRoute() || isEditorRoute()) {
           removeMobileCreateFab(state);
           return;
         }
