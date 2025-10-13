@@ -13,7 +13,7 @@ image: /uploads/d22df3a3-8d19-4788-9413-33f8d5aaa189.png
 author: Daniel Schulman
 layout: post.njk
 ---
-The first time I tried to address a wedding envelope, I froze.
+The[](https://www.textmylink.com) first time I tried to address a wedding envelope, I froze.
 
 It felt like taking a test I didn’t study for.
 \
@@ -69,7 +69,7 @@ Ours was formal black tie, so we went traditional. There’s something about see
 
 1. Use your guest list as your master reference.
 
-When you collect addresses with [TextMyLink](www.textmylink.com), export the list and use it to double-check spellings and titles before printing. It saves hours of “wait, did we invite both of them?” moments.
+When you collect addresses with [TextMyLink](https://www.textmylink.com)[](www.textmylink.com), export the list and use it to double-check spellings and titles before printing. It saves hours of “wait, did we invite both of them?” moments.
 
 2. Hand-address or print?
 
