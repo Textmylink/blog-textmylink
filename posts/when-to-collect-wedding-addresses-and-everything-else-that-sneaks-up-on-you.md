@@ -38,7 +38,7 @@ Here’s the timeline I wish someone handed me when I got engaged.
 
 You’ve set a date and maybe even found a venue. Great. This is your sweet spot to start collecting addresses. Send a text or link asking for mailing info. Double-check spelling and plus-ones early. Keep everything digital so you can export it later (trust me on this).
 
-If you’re using something like TextMyLink, this part can be one-and-done in a few clicks.
+If you’re using something like [TextMyLink](https://textmylink.com/), this part can be one-and-done in a few clicks.
 
 ### 6–8 months before the wedding
 
@@ -60,7 +60,7 @@ You’re exhausted but grateful. Don’t lose your momentum. Save your final gue
 
 ## Why texting your guests changes everything
 
-When we planned our wedding, we used TextMyLink to collect addresses — and honestly, it changed everything. I’ve seen every which way that people try to ask for someone’s address, and some of them get pretty creative. Here are a few of my top versions:
+When we planned our wedding, we used [TextMyLink ](https://textmylink.com/)to collect addresses — and honestly, it changed everything. I’ve seen every which way that people try to ask for someone’s address, and some of them get pretty creative. Here are a few of my top versions:
 
 “Hey, what’s your address again? We’re sending invites.”
 “Hi! Can you text me your mailing address?”
@@ -70,7 +70,7 @@ When we planned our wedding, we used TextMyLink to collect addresses — and hon
 
 They all work… eventually. But sending that message over and over gets old fast.
 
-That’s what made us build TextMyLink — so you could send one simple message, have everyone fill out their info, and store it in one clean list. No endless follow-ups, no typos, no guilt-texts to your college roommate.
+That’s what made us build [TextMyLink ](https://textmylink.com/)— so you could send one simple message, have everyone fill out their info, and store it in one clean list. No endless follow-ups, no typos, no guilt-texts to your college roommate.
 
 If you’re deep in address chaos right now, don’t overthink it. A single link or mass text saves hours. It’s not about being perfectly organized — it’s about staying sane.
 
