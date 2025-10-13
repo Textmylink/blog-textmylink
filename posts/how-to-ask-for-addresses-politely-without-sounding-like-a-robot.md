@@ -100,3 +100,5 @@ Be kind, be yourself, and make it easy for people to reply.
 A few short messages now will save you hours later — and maybe even your sanity.
 
 If you’re knee-deep in guest lists right now, you’re doing great. A few texts really can make the whole thing feel easier.
+
+If you're in the middle of planning and need a timeline take a look at our post on [when to collect wedding addresses](https://blog.textmylink.com/posts/when-to-collect-wedding-addresses-and-everything-else-that-sneaks-up-on-you/).
