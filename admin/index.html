@@ -676,6 +676,18 @@
           align-items: stretch !important;
           gap: 0.75rem !important;
           width: 100% !important;
+        }
+
+        #nc-root header[role="banner"] {
+          position: relative !important;
+          top: auto !important;
+          z-index: 1 !important;
+          margin-bottom: 0.75rem !important;
+        }
+
+        #nc-root header[role="toolbar"],
+        #nc-root [class*="EditorHeader"],
+        #nc-root [class*="CollectionHeader"] {
           position: sticky !important;
           top: calc(var(--cms-mobile-top-offset, 0px) + 0.5rem) !important;
           z-index: 1000 !important;
