@@ -380,8 +380,13 @@
           );
         };
 
+        const isEditingRoute = () => {
+          const hash = window.location.hash || "";
+          return /^#\/collections\/[^/]+\/(new|entries\/)/i.test(hash);
+        };
+
         const targetCollection = getDefaultCollectionName();
-        if (!targetCollection || isAuthRoute()) {
+        if (!targetCollection || isAuthRoute() || isEditingRoute()) {
           removeMobileCreateFab(state);
           return;
         }

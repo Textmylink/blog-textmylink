@@ -366,8 +366,13 @@
       }
 
       function ensureMobileCreateFab(root, state) {
+        const isEditingRoute = () => {
+          const hash = window.location.hash || "";
+          return /^#\/collections\/[^/]+\/(new|entries\/)/i.test(hash);
+        };
+
         const targetCollection = getDefaultCollectionName();
-        if (!targetCollection) {
+        if (!targetCollection || isEditingRoute()) {
           removeMobileCreateFab(state);
           return;
         }
