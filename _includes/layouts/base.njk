@@ -11,6 +11,7 @@
     {% set rawImage = seo_image or image or site.image %}
     {% set metaImage = rawImage | toAbsoluteUrl %}
     {% set metaOgType = og_type or "website" %}
+    {% set siteIcon = site.icon or site.organization.logo %}
     <title>{{ metaTitle }}</title>
     {% if metaDescription %}
       <meta name="description" content="{{ metaDescription }}">
@@ -36,6 +37,12 @@
       <meta name="twitter:description" content="{{ metaDescription }}">
     {% endif %}
     <link rel="alternate" type="application/rss+xml" title="{{ site.title }} RSS" href="/feed.xml">
+    {% if siteIcon %}
+      <link rel="icon" type="image/png" sizes="32x32" href="{{ siteIcon }}">
+      <link rel="icon" type="image/png" sizes="192x192" href="{{ siteIcon }}">
+      <link rel="apple-touch-icon" sizes="180x180" href="{{ siteIcon }}">
+      <link rel="shortcut icon" href="{{ siteIcon }}">
+    {% endif %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">

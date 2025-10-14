@@ -3,9 +3,10 @@
   "description": "Wedding planning tips, guest communication ideas, and TextMyLink updates to help you collect addresses, track RSVPs, and keep everyone in the loop.",
   "author": "Daniel Schulman",
   "url": "https://blog.textmylink.com",
+  "icon": "/static/uploads/Blog.TextMyLink.png",
   "image": "/static/uploads/default-social.jpg",
   "organization": {
     "name": "TextMyLink",
-    "logo": "/static/uploads/logo.png"
+    "logo": "/static/uploads/Blog.TextMyLink.png"
   }
 }
