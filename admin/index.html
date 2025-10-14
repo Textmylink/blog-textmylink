@@ -103,10 +103,12 @@
 
           if (isMobile) {
             ensureMobileTopBar(state);
+            updateMobileTopOffset(state);
             ensureMobileCreateFab(root, state);
           } else {
             removeMobileCreateFab(state);
             resetMobileTopBar(state);
+            clearMobileTopOffset();
           }
 
           if (sidebar) {
@@ -180,6 +182,10 @@
                 resetMobileStyles(modalContent);
               }
             }
+          }
+
+          if (isMobile) {
+            updateMobileTopOffset(state);
           }
 
           if (!isMobile) {
@@ -363,6 +369,26 @@
           state.topBar.remove();
           state.topBar = null;
         }
+        clearMobileTopOffset();
+      }
+
+      function updateMobileTopOffset(state) {
+        if (!state || !document || !document.body) {
+          return;
+        }
+        const height = state.topBar ? Math.ceil(state.topBar.getBoundingClientRect().height) : 0;
+        if (height > 0) {
+          document.body.style.setProperty("--cms-mobile-top-offset", `${height}px`);
+        } else {
+          clearMobileTopOffset();
+        }
+      }
+
+      function clearMobileTopOffset() {
+        if (!document || !document.body) {
+          return;
+        }
+        document.body.style.removeProperty("--cms-mobile-top-offset");
       }
 
       function ensureMobileCreateFab(root, state) {
@@ -535,7 +561,7 @@
 
         #nc-root {
           overflow-x: hidden;
-          padding-top: 5.75rem;
+          padding-top: calc(var(--cms-mobile-top-offset, 0px) + 1rem);
         }
 
         #cms-mobile-toolbar {
@@ -548,7 +574,7 @@
           justify-content: flex-end;
           gap: 0.75rem;
           align-items: center;
-          padding: 0.65rem 0.75rem;
+          padding: calc(env(safe-area-inset-top, 0) + 0.65rem) 0.75rem 0.65rem;
           background: rgba(248, 250, 252, 0.96);
           backdrop-filter: blur(12px);
           border-bottom: 1px solid rgba(148, 163, 184, 0.28);
@@ -650,6 +676,9 @@
           align-items: stretch !important;
           gap: 0.75rem !important;
           width: 100% !important;
+          position: sticky !important;
+          top: calc(var(--cms-mobile-top-offset, 0px) + 0.5rem) !important;
+          z-index: 1000 !important;
         }
 
         #nc-root header[role="banner"] > *,
@@ -668,6 +697,16 @@
           flex-wrap: wrap !important;
           justify-content: flex-start !important;
           gap: 0.6rem !important;
+        }
+
+        #nc-root [class*="EditorToolbar"],
+        #nc-root [class*="HeaderToolbar"],
+        #nc-root [class*="CollectionControls"],
+        #nc-root [class*="Toolbar"],
+        #nc-root [class*="Sticky"],
+        #nc-root [data-testid*="toolbar"],
+        #nc-root [data-testid*="header"] {
+          top: calc(var(--cms-mobile-top-offset, 0px) + 0.75rem) !important;
         }
 
         #nc-root nav[role="navigation"] a,
