@@ -1,1 +1,12 @@
 <h1>blog-textmylink</h1>
+<h2>Handling large command output in the Codex shell</h2>
+<p>If a command prints a line longer than 4,096 bytes, Codex stops the session
+with an error similar to:</p>
+<pre><code>Error: Output for session 'shell' contained a line exceeding the max of 4096
+bytes (observed at least 14414 bytes).
+</code></pre>
+<p>To avoid this, rerun the command while constraining the output size. Common
+approaches include piping the command through tools such as <code>grep</code>, <code>jq</code>, or
+<code>cut</code>, or redirecting the output to a file for later inspection. When working
+with build logs, consider filtering to the lines you need (e.g. <code>grep -nE</code> for
+pattern matches) or truncating very long lines with <code>cut -c1-200</code>.</p>

@@ -4,10 +4,42 @@
     <title>TextMyLink Blog</title>
     <link>https://blog.textmylink.com/</link>
     <atom:link href="https://blog.textmylink.com/feed.xml" rel="self" type="application/rss+xml" />
-    <description>Insights, product updates, and resources from the TextMyLink team.</description>
+    <description>Wedding planning tips, guest communication ideas, and TextMyLink updates to help you collect addresses, track RSVPs, and keep everyone in the loop.</description>
     <language>en</language>
     
-    <lastBuildDate>Wed, 08 Oct 2025 14:41:00 PDT</lastBuildDate>
+    <lastBuildDate>Mon, 13 Oct 2025 12:32:00 PDT</lastBuildDate>
+    
+      <item>
+        <title>How to Actually Address Wedding Invitations Without Second-Guessing Yourself</title>
+        <link>https://blog.textmylink.com/posts/how-to-actually-address-wedding-invitations-without-second-guessing-yourself/</link>
+        <guid isPermaLink="true">https://blog.textmylink.com/posts/how-to-actually-address-wedding-invitations-without-second-guessing-yourself/</guid>
+        <pubDate>Mon, 13 Oct 2025 12:32:00 PDT</pubDate>
+        <description>It’s wild how something as simple as writing names on envelopes can cause so much stress. Here’s a cheat sheet for addressing your invites without the panic-googling.</description>
+      </item>
+    
+      <item>
+        <title>The Art of the Gentle Nudge: How to Remind Guests to RSVP (Without Sounding Pushy)</title>
+        <link>https://blog.textmylink.com/posts/the-art-of-the-gentle-nudge-how-to-remind-guests-to-rsvp-without-sounding-pushy/</link>
+        <guid isPermaLink="true">https://blog.textmylink.com/posts/the-art-of-the-gentle-nudge-how-to-remind-guests-to-rsvp-without-sounding-pushy/</guid>
+        <pubDate>Sun, 12 Oct 2025 12:50:00 PDT</pubDate>
+        <description>RSVP deadlines are like New Year’s resolutions… everyone means well, but half the people forget. Here’s how to send a friendly reminder that actually works.</description>
+      </item>
+    
+      <item>
+        <title>How to Ask for Addresses Politely (Without Sounding Like a Robot)</title>
+        <link>https://blog.textmylink.com/posts/how-to-ask-for-addresses-politely-without-sounding-like-a-robot/</link>
+        <guid isPermaLink="true">https://blog.textmylink.com/posts/how-to-ask-for-addresses-politely-without-sounding-like-a-robot/</guid>
+        <pubDate>Sat, 11 Oct 2025 13:10:00 PDT</pubDate>
+        <description>You’re finally ready to start collecting wedding addresses… but how do you actually ask people without it feeling weird? Here are a few ways to make it sound natural (and still get fast replies).</description>
+      </item>
+    
+      <item>
+        <title>When to Collect Wedding Addresses (and Everything Else That Sneaks Up on You)</title>
+        <link>https://blog.textmylink.com/posts/when-to-collect-wedding-addresses-and-everything-else-that-sneaks-up-on-you/</link>
+        <guid isPermaLink="true">https://blog.textmylink.com/posts/when-to-collect-wedding-addresses-and-everything-else-that-sneaks-up-on-you/</guid>
+        <pubDate>Fri, 10 Oct 2025 13:36:00 PDT</pubDate>
+        <description>You said “yes.” You celebrated. And then… the spreadsheets started. Here’s a real timeline for when to collect addresses, send invites, and actually stay ahead of it all.</description>
+      </item>
     
       <item>
         <title>The First Text That Started It All</title>

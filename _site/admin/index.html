@@ -366,13 +366,27 @@
       }
 
       function ensureMobileCreateFab(root, state) {
+        const isAuthRoute = () => {
+          const hash = window.location.hash || "";
+          if (!hash || hash === "#/") {
+            return true;
+          }
+          const normalized = hash.toLowerCase();
+          return (
+            normalized.startsWith("#/login") ||
+            normalized.startsWith("#/recover") ||
+            normalized.startsWith("#/forgot") ||
+            normalized.startsWith("#/invite")
+          );
+        };
+
         const isEditingRoute = () => {
           const hash = window.location.hash || "";
           return /^#\/collections\/[^/]+\/(new|entries\/)/i.test(hash);
         };
 
         const targetCollection = getDefaultCollectionName();
-        if (!targetCollection || isEditingRoute()) {
+        if (!targetCollection || isAuthRoute() || isEditingRoute()) {
           removeMobileCreateFab(state);
           return;
         }
