@@ -92,7 +92,8 @@
           banner: null,
           bannerParent: null,
           bannerPlaceholder: null,
-          fab: null
+          fab: null,
+          toolbars: []
         };
 
         let applyScheduled = false;
@@ -108,6 +109,7 @@
           if (isMobile) {
             ensureMobileTopBar(state);
             relocateBannerToTopBar(root, state);
+            relocateMobileToolbars(root, state);
             updateMobileTopOffset(state);
             ensureMobileCreateFab(root, state);
           } else {
@@ -396,6 +398,7 @@
           state.button = null;
         }
         resetMobileBanner(state);
+        resetMobileToolbars(state);
         if (state.topBar) {
           state.topBar.remove();
           state.topBar = null;
@@ -451,6 +454,114 @@
         }
       }
 
+      function relocateMobileToolbars(root, state) {
+        if (!root || !document) {
+          return;
+        }
+
+        const container = getMobileTopBarContent(state);
+        if (!container) {
+          return;
+        }
+
+        if (!Array.isArray(state.toolbars)) {
+          state.toolbars = [];
+        }
+
+        const selectors = [
+          "[data-testid='entry-editor-header']",
+          "[data-testid='entry-editor-toolbar']",
+          "header[role='toolbar']",
+          "[class*='EditorHeader']",
+          "[class*='EditorToolbar']",
+          "[class*='HeaderToolbar']",
+          "[class*='CollectionControls']",
+          "[data-testid*='toolbar']",
+          "[data-testid*='header']"
+        ];
+
+        state.toolbars.forEach((entry) => {
+          entry.keep = false;
+        });
+
+        const shouldSkip = (node) => {
+          if (!node || !node.parentNode) {
+            return true;
+          }
+          if (node.closest('[role="dialog"]')) {
+            return true;
+          }
+          if (node.dataset && node.dataset.mobileToolbarPlaceholder) {
+            return true;
+          }
+          return selectors.some((selector) => {
+            try {
+              return node.parentElement && node.parentElement.matches(selector);
+            } catch (error) {
+              return false;
+            }
+          });
+        };
+
+        selectors.forEach((selector) => {
+          let nodes;
+          try {
+            nodes = root.querySelectorAll(selector);
+          } catch (error) {
+            nodes = [];
+          }
+          nodes.forEach((node) => {
+            if (node.closest('#cms-mobile-toolbar')) {
+              const entry = state.toolbars.find((item) => item.node === node);
+              if (entry) {
+                entry.keep = true;
+              }
+              return;
+            }
+
+            if (shouldSkip(node)) {
+              return;
+            }
+
+            let entry = state.toolbars.find((item) => item.node === node);
+            if (!entry) {
+              const placeholder = document.createElement('div');
+              placeholder.dataset.mobileToolbarPlaceholder = 'true';
+              placeholder.style.display = 'none';
+              const parent = node.parentNode;
+              if (parent && parent.contains(node)) {
+                parent.insertBefore(placeholder, node);
+              }
+              container.appendChild(node);
+              entry = {
+                node,
+                placeholder,
+                parent: (placeholder && placeholder.parentNode) || parent,
+                keep: true
+              };
+              state.toolbars.push(entry);
+            } else {
+              entry.keep = true;
+              if (entry.placeholder && entry.placeholder.parentNode) {
+                entry.parent = entry.placeholder.parentNode;
+              }
+              if (node.parentNode !== container) {
+                container.appendChild(node);
+              }
+            }
+          });
+        });
+
+        state.toolbars = state.toolbars.filter((entry) => {
+          if (entry.keep && entry.node && document.contains(entry.node)) {
+            delete entry.keep;
+            return true;
+          }
+          restoreMobileToolbarEntry(entry);
+          return false;
+        });
+      }
+
       function resetMobileBanner(state) {
         if (!state.banner) {
           if (state.bannerPlaceholder && state.bannerPlaceholder.parentNode) {
@@ -478,6 +589,29 @@
         state.banner = null;
         state.bannerParent = null;
         state.bannerPlaceholder = null;
+      }
+
+      function restoreMobileToolbarEntry(entry) {
+        if (!entry || !entry.node) {
+          return;
+        }
+        const { node, placeholder, parent } = entry;
+        if (placeholder && placeholder.parentNode) {
+          placeholder.parentNode.insertBefore(node, placeholder);
+        } else if (parent && document.contains(parent)) {
+          parent.appendChild(node);
+        }
+        if (placeholder && typeof placeholder.remove === 'function') {
+          placeholder.remove();
+        }
+      }
+
+      function resetMobileToolbars(state) {
+        if (!state || !Array.isArray(state.toolbars)) {
+          return;
+        }
+        state.toolbars.forEach((entry) => restoreMobileToolbarEntry(entry));
+        state.toolbars = [];
       }
 
       function updateMobileTopOffset(state) {
@@ -669,7 +803,7 @@
 
         #nc-root {
           overflow-x: hidden;
-          padding-top: calc(var(--cms-mobile-top-offset, 0px) + 1rem);
+          padding-top: calc(var(--cms-mobile-top-offset, 0px) + 1.5rem);
         }
 
         #cms-mobile-toolbar {
@@ -695,6 +829,10 @@
           width: 100%;
         }
 
+        #cms-mobile-toolbar [data-mobile-toolbar-content] > * {
+          width: 100%;
+        }
+
         #cms-mobile-toolbar header[role="banner"] {
           position: static !important;
           top: auto !important;
@@ -705,6 +843,33 @@
         #cms-mobile-toolbar header[role="banner"] > * {
           width: 100% !important;
           max-width: 100% !important;
+        }
+
+        #cms-mobile-toolbar header[role="toolbar"],
+        #cms-mobile-toolbar [class*="EditorHeader"],
+        #cms-mobile-toolbar [class*="EditorToolbar"],
+        #cms-mobile-toolbar [class*="HeaderToolbar"],
+        #cms-mobile-toolbar [class*="CollectionControls"],
+        #cms-mobile-toolbar [data-testid*="toolbar"],
+        #cms-mobile-toolbar [data-testid*="header"] {
+          position: static !important;
+          top: auto !important;
+          margin: 0 !important;
+          width: 100% !important;
+          display: flex !important;
+          flex-wrap: wrap !important;
+          gap: 0.6rem !important;
+        }
+
+        #cms-mobile-toolbar header[role="toolbar"] > *,
+        #cms-mobile-toolbar [class*="EditorHeader"] > *,
+        #cms-mobile-toolbar [class*="EditorToolbar"] > *,
+        #cms-mobile-toolbar [class*="HeaderToolbar"] > *,
+        #cms-mobile-toolbar [class*="CollectionControls"] > *,
+        #cms-mobile-toolbar [data-testid*="toolbar"] > *,
+        #cms-mobile-toolbar [data-testid*="header"] > * {
+          flex: 1 1 140px !important;
+          min-width: 0 !important;
         }
 
         #cms-mobile-collections-button {
