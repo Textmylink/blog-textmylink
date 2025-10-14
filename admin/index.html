@@ -88,6 +88,10 @@
           nav: null,
           panel: null,
           topBar: null,
+          topBarContent: null,
+          banner: null,
+          bannerParent: null,
+          bannerPlaceholder: null,
           fab: null
         };
 
@@ -103,6 +107,7 @@
 
           if (isMobile) {
             ensureMobileTopBar(state);
+            relocateBannerToTopBar(root, state);
             updateMobileTopOffset(state);
             ensureMobileCreateFab(root, state);
           } else {
@@ -250,8 +255,6 @@
         state.nav = nav;
         applyMobileStyles(nav, { display: "none" });
 
-        const topBar = ensureMobileTopBar(state);
-
         if (!state.panel) {
           const panelTag = nav.tagName.toLowerCase() === "nav" ? "nav" : "div";
           const panel = document.createElement(panelTag);
@@ -278,7 +281,7 @@
           );
         }
 
-        const button = ensureMobileNavButton(state, topBar, state.panel ? state.panel.id : null);
+        const button = ensureMobileNavButton(state, state.panel ? state.panel.id : null);
         const overlay = ensureMobileNavOverlay(state);
         state.button = button;
         state.overlay = overlay;
@@ -300,7 +303,7 @@
         setCollectionsOpen(false, state);
       }
 
-      function ensureMobileNavButton(state, topBar, controlsId) {
+      function ensureMobileNavButton(state, controlsId) {
         let button = document.getElementById("cms-mobile-collections-button");
         if (!button) {
           button = document.createElement("button");
@@ -313,8 +316,9 @@
             setCollectionsOpen(shouldOpen, state);
           });
         }
-        if (topBar && button.parentNode !== topBar) {
-          topBar.appendChild(button);
+        const container = getMobileTopBarContent(state);
+        if (container && button.parentNode !== container) {
+          container.appendChild(button);
         }
         if (controlsId) {
           button.setAttribute("aria-controls", controlsId);
@@ -346,7 +350,9 @@
 
       function ensureMobileTopBar(state) {
         if (state.topBar && document.body.contains(state.topBar)) {
-          return state.topBar;
+          if (state.topBarContent && state.topBar.contains(state.topBarContent)) {
+            return state.topBar;
+          }
         }
         let bar = document.getElementById("cms-mobile-toolbar");
         if (!bar) {
@@ -356,8 +362,32 @@
         } else if (bar.parentNode !== document.body) {
           document.body.appendChild(bar);
         }
+        let content = bar.querySelector("[data-mobile-toolbar-content]");
+        if (!content) {
+          content = document.createElement("div");
+          content.dataset.mobileToolbarContent = "true";
+          bar.appendChild(content);
+        }
+        state.topBarContent = content;
         state.topBar = bar;
         return bar;
+      }
+
+      function getMobileTopBarContent(state) {
+        const topBar = ensureMobileTopBar(state);
+        if (!topBar) {
+          return null;
+        }
+        if (!state.topBarContent || state.topBarContent.parentNode !== topBar) {
+          let content = topBar.querySelector("[data-mobile-toolbar-content]");
+          if (!content) {
+            content = document.createElement("div");
+            content.dataset.mobileToolbarContent = "true";
+            topBar.appendChild(content);
+          }
+          state.topBarContent = content;
+        }
+        return state.topBarContent;
       }
 
       function resetMobileTopBar(state) {
@@ -365,11 +395,89 @@
           state.button.remove();
           state.button = null;
         }
+        resetMobileBanner(state);
         if (state.topBar) {
           state.topBar.remove();
           state.topBar = null;
         }
+        state.topBarContent = null;
         clearMobileTopOffset();
+      }
+
+      function relocateBannerToTopBar(root, state) {
+        if (!root || !document) {
+          return;
+        }
+        const container = getMobileTopBarContent(state);
+        if (!container) {
+          return;
+        }
+
+        let banner = state.banner && document.body.contains(state.banner) ? state.banner : null;
+        if (!banner) {
+          banner =
+            root.querySelector('[data-testid="app-header"]') ||
+            root.querySelector('header[role="banner"]') ||
+            document.querySelector('#nc-root header[role="banner"]') ||
+            root.querySelector('[class*="AppHeader"]');
+        }
+        if (!banner) {
+          return;
+        }
+
+        state.banner = banner;
+
+        if (!state.bannerParent || !state.bannerPlaceholder || !state.bannerPlaceholder.parentNode) {
+          const parent = banner.parentNode;
+          if (parent) {
+            const placeholder = document.createElement('div');
+            placeholder.id = 'cms-mobile-banner-placeholder';
+            placeholder.dataset.mobileBannerPlaceholder = 'true';
+            placeholder.style.display = 'none';
+            parent.insertBefore(placeholder, banner);
+            state.bannerParent = parent;
+            state.bannerPlaceholder = placeholder;
+          }
+        }
+
+        if (container && banner.parentNode !== container) {
+          container.insertBefore(banner, container.firstChild || null);
+        }
+        if (state.banner) {
+          state.banner.setAttribute('data-mobile-in-top-bar', 'true');
+        }
+        if (state.bannerPlaceholder) {
+          state.bannerParent = state.bannerPlaceholder.parentNode || state.bannerParent;
+        }
+      }
+
+      function resetMobileBanner(state) {
+        if (!state.banner) {
+          if (state.bannerPlaceholder && state.bannerPlaceholder.parentNode) {
+            state.bannerPlaceholder.remove();
+          }
+          state.bannerParent = null;
+          state.bannerPlaceholder = null;
+          return;
+        }
+
+        if (state.bannerParent && state.bannerPlaceholder && state.bannerPlaceholder.parentNode === state.bannerParent) {
+          state.bannerParent.insertBefore(state.banner, state.bannerPlaceholder);
+        } else if (state.bannerPlaceholder && state.bannerPlaceholder.parentNode) {
+          state.bannerPlaceholder.parentNode.insertBefore(state.banner, state.bannerPlaceholder);
+        } else if (state.bannerParent) {
+          state.bannerParent.appendChild(state.banner);
+        }
+
+        state.banner.removeAttribute('data-mobile-in-top-bar');
+
+        if (state.bannerPlaceholder && state.bannerPlaceholder.parentNode) {
+          state.bannerPlaceholder.remove();
+        }
+
+        state.banner = null;
+        state.bannerParent = null;
+        state.bannerPlaceholder = null;
       }
 
       function updateMobileTopOffset(state) {
@@ -571,13 +679,32 @@
           right: 0;
           z-index: 1003;
           display: flex;
-          justify-content: flex-end;
-          gap: 0.75rem;
-          align-items: center;
-          padding: calc(env(safe-area-inset-top, 0) + 0.65rem) 0.75rem 0.65rem;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0.65rem;
+          padding: calc(env(safe-area-inset-top, 0) + 0.65rem) 0.75rem 0.75rem;
           background: rgba(248, 250, 252, 0.96);
           backdrop-filter: blur(12px);
           border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+        }
+
+        #cms-mobile-toolbar [data-mobile-toolbar-content] {
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+          width: 100%;
+        }
+
+        #cms-mobile-toolbar header[role="banner"] {
+          position: static !important;
+          top: auto !important;
+          margin: 0 !important;
+          width: 100% !important;
+        }
+
+        #cms-mobile-toolbar header[role="banner"] > * {
+          width: 100% !important;
+          max-width: 100% !important;
         }
 
         #cms-mobile-collections-button {
@@ -596,6 +723,8 @@
           font-weight: 600;
           box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
           cursor: pointer;
+          width: 100%;
+          justify-content: center;
         }
 
         #cms-mobile-collections-button span[aria-hidden="true"] {
@@ -667,6 +796,7 @@
           transform: translateX(0);
         }
 
+        #cms-mobile-toolbar header[role="banner"],
         #nc-root header[role="banner"],
         #nc-root header[role="toolbar"],
         #nc-root [class*="EditorHeader"],
