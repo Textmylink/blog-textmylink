@@ -29,12 +29,14 @@
           window.CMS.init();
           setupIdentityUI();
           setupMobileEnhancements();
+          setupBodyFormattingTips();
           return;
         }
         if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
           window.NetlifyCmsApp.init();
           setupIdentityUI();
           setupMobileEnhancements();
+          setupBodyFormattingTips();
           return;
         }
         const message = "Netlify CMS failed to load. Check the browser console for details.";
@@ -216,6 +218,115 @@
             setCollectionsOpen(false, state);
           }
         });
+      }
+
+      function setupBodyFormattingTips() {
+        const TIPS_ID = "cms-body-formatting-tips";
+        const rootId = "nc-root";
+        let observer = null;
+        let scheduled = false;
+
+        const ensureTips = () => {
+          scheduled = false;
+          const root = document.getElementById(rootId);
+          if (!root) {
+            return;
+          }
+
+          const container = findBodyFieldContainer(root);
+          if (!container) {
+            return;
+          }
+
+          let tips = root.querySelector(`#${TIPS_ID}`);
+          if (tips && tips.parentElement !== container) {
+            tips.remove();
+            tips = null;
+          }
+
+          if (!tips) {
+            tips = document.createElement("details");
+            tips.id = TIPS_ID;
+            tips.className = "cms-helper";
+            tips.innerHTML = `
+              <summary>Formatting tips</summary>
+              <div class="cms-helper__content">
+                <p>Write posts in Markdown or raw HTML. Remember:</p>
+                <ul>
+                  <li><code>#</code> and <code>##</code> create headings. Leave a blank line before and after.</li>
+                  <li>Create links with <code>[text](https://example.com)</code>.</li>
+                  <li>Wrap code samples in triple backticks <code>```html</code> … <code>```</code> to keep indentation.</li>
+                  <li>Inline HTML like <code>&lt;p&gt;</code> or <code>&lt;h2&gt;</code> is passed straight through.</li>
+                </ul>
+                <p>If mobile autocorrect edits your tags, turn it off temporarily for that line.</p>
+              </div>
+            `;
+          }
+
+          if (!tips.isConnected) {
+            const reference = container.querySelector(
+              "textarea, [data-testid*='markdown'], [class*='Markdown'], [role='textbox']"
+            );
+            if (reference && reference.parentNode === container) {
+              container.insertBefore(tips, reference);
+            } else {
+              container.appendChild(tips);
+            }
+          }
+        };
+
+        const scheduleEnsure = () => {
+          if (scheduled) {
+            return;
+          }
+          scheduled = true;
+          requestAnimationFrame(ensureTips);
+        };
+
+        const findBodyFieldContainer = (root) => {
+          const selectors = [
+            "textarea#body",
+            "textarea[name='body']",
+            "textarea[id*='body']",
+            "textarea[data-field='body']",
+            "[data-field='body']",
+            "[data-testid='markdown-editor']",
+            "[class*='MarkdownControl']"
+          ];
+
+          for (const selector of selectors) {
+            const element = root.querySelector(selector);
+            if (element) {
+              const container = element.closest(
+                "[data-field], [class*='Control'], [class*='Pane'], [role='group'], fieldset, div"
+              );
+              if (container) {
+                return container;
+              }
+            }
+          }
+
+          const labels = Array.from(root.querySelectorAll("label"));
+          for (const label of labels) {
+            const text = (label.textContent || "").trim().toLowerCase();
+            if (text === "body") {
+              return (
+                label.closest("[data-field], [class*='Control'], [class*='Pane'], fieldset, div") ||
+                label.parentElement
+              );
+            }
+          }
+
+          return null;
+        };
+
+        const root = document.getElementById(rootId);
+        if (root) {
+          observer = new MutationObserver(scheduleEnsure);
+          observer.observe(root, { childList: true, subtree: true });
+        }
+
+        scheduleEnsure();
       }
 
       function applyMobileStyles(element, styles) {
@@ -521,6 +632,48 @@
   </body>
 </html>
     <style>
+      #cms-body-formatting-tips {
+        margin: 1rem 0;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        background: rgba(248, 250, 252, 0.65);
+      }
+
+      #cms-body-formatting-tips summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: #1e293b;
+      }
+
+      #cms-body-formatting-tips[open] summary {
+        margin-bottom: 0.55rem;
+      }
+
+      #cms-body-formatting-tips code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        background: rgba(15, 23, 42, 0.08);
+        padding: 0.12rem 0.35rem;
+        border-radius: 6px;
+        font-size: 0.85em;
+      }
+
+      #cms-body-formatting-tips ul {
+        margin: 0.5rem 0 0;
+        padding-left: 1.1rem;
+      }
+
+      #cms-body-formatting-tips li {
+        margin: 0.35rem 0;
+      }
+
+      #cms-body-formatting-tips p {
+        margin: 0.35rem 0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: #334155;
+      }
+
       #cms-mobile-toolbar,
       #cms-mobile-collections-button,
       #cms-mobile-collections-overlay,
