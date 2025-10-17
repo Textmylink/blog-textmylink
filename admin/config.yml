@@ -72,6 +72,10 @@ collections:
         name: "body"
         widget: "markdown"
         required: false
+        hint: |
+          Write the post in standard Markdown (headings, lists, bold/italic text, etc.).
+          If you need embeds (forms, videos, etc.), paste the raw HTML snippet directly in
+          the Markdown where it should appear—the preview and published page will render it.
       - label: "Layout"
         name: "layout"
         widget: "hidden"
