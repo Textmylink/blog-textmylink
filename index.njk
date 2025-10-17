@@ -29,12 +29,36 @@ description: "Wedding planning tips, guest communication ideas, and TextMyLink u
   {% endif %}
 
   {% if allPosts | length > 1 %}
-    <section class="post-grid">
+    {% set initialBatchSize = 6 %}
+    {% set totalRegularCount = (allPosts | length) - 1 %}
+    {% if totalRegularCount < 0 %}
+      {% set totalRegularCount = 0 %}
+    {% endif %}
+    {% if totalRegularCount > 0 and initialBatchSize > 0 %}
+      {% set totalPages = ((totalRegularCount + initialBatchSize - 1) / initialBatchSize) | int %}
+    {% else %}
+      {% set totalPages = 0 %}
+    {% endif %}
+    {% set hasMorePages = totalPages > 1 %}
+    {% if hasMorePages %}
+      {% set nextPage = 2 %}
+    {% else %}
+      {% set nextPage = 0 %}
+    {% endif %}
+    <section
+      class="post-grid"
+      data-infinite-scroll
+      data-page-size="{{ initialBatchSize }}"
+      data-next-page="{{ nextPage }}"
+      data-total-pages="{{ totalPages }}"
+      data-endpoint-root="/api/posts/page-"
+      data-endpoint-extension=".json"
+    >
       {% for post in allPosts %}
-        {% if not loop.first and loop.index0 < 5 %}
+        {% if loop.index0 > 0 and loop.index0 <= initialBatchSize %}
           {% set cardImage = post.data.image | default("") | trim %}
           {% set cardExcerpt = post.data.description or (post.templateContent | striptags | truncate(150, true, "...")) %}
-          <article class="post-card">
+          <article class="post-card" data-card-index="{{ loop.index0 }}">
             <a href="{{ post.url }}">
               {% if cardImage and cardImage | length > 4 %}
                 <div class="post-card__media">
@@ -53,6 +77,19 @@ description: "Wedding planning tips, guest communication ideas, and TextMyLink u
           </article>
         {% endif %}
       {% endfor %}
+      {% if hasMorePages %}
+        <div class="infinite-scroll-sentinel" aria-hidden="true"></div>
+      {% endif %}
     </section>
+    <noscript>
+      <p class="infinite-scroll-fallback">
+        JavaScript is required to load more stories. You can continue browsing the archive on the
+        <a href="/tags">tags page</a>.
+      </p>
+    </noscript>
   {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/infinite-scroll.js" defer></script>
 {% endblock %}
