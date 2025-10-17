@@ -342,30 +342,58 @@
 
         const EMBED_WRAPPER_PATTERN = /<div[^>]*class=["'][^"']*post-embed[^"']*["'][^>]*>([\s\S]*?)<\/div>/i;
 
+        const normaliseNewlines = (value) =>
+          String(value)
+            .replace(/\r\n/g, "\n")
+            .replace(/\r/g, "\n");
+
+        const stripEmbedIndentation = (value) =>
+          normaliseNewlines(value)
+            .split("\n")
+            .map((line) => (line.startsWith("  ") ? line.slice(2) : line))
+            .join("\n");
+
         const unwrapEmbedHtml = (markup) => {
           if (!markup) {
             return "";
           }
-          const match = markup.match(EMBED_WRAPPER_PATTERN);
+          const match = normaliseNewlines(markup).match(EMBED_WRAPPER_PATTERN);
           if (match && match[1]) {
-            return match[1].trim();
+            return stripEmbedIndentation(match[1]).trim();
           }
-          return markup.trim();
+          return stripEmbedIndentation(markup).trim();
         };
+
+        const indentEmbedContent = (value) =>
+          normaliseNewlines(value)
+            .split("\n")
+            .map((line) => {
+              const trimmedLine = line.replace(/\s+$/g, "");
+              return trimmedLine.length === 0 ? "" : `  ${trimmedLine}`;
+            })
+            .join("\n");
 
         const wrapEmbedHtml = (raw) => {
           if (!raw) {
             return "";
           }
-          const trimmed = String(raw).trim();
-          if (!trimmed) {
+
+          const normalised = normaliseNewlines(raw).trim();
+          if (!normalised) {
             return "";
           }
-          if (/class\s*=\s*["'][^"']*post-embed[^"']*["']/i.test(trimmed.split("\n")[0])) {
-            return trimmed;
+
+          const existingMatch = normalised.match(EMBED_WRAPPER_PATTERN);
+          const inner = existingMatch && existingMatch[1]
+            ? stripEmbedIndentation(existingMatch[1]).trim()
+            : stripEmbedIndentation(normalised).trim();
+
+          if (!inner) {
+            return "";
           }
-          const indented = trimmed.replace(/\n/g, "\n  ");
-          return `<div class="post-embed">\n  ${indented}\n</div>`;
+
+          const indented = indentEmbedContent(inner);
+          return `<div class="post-embed">\n${indented}\n</div>`;
         };
 
         try {
@@ -376,8 +404,10 @@
               {
                 name: "code",
                 label: "Embed HTML",
-                widget: "text",
-                hint: "Paste the embed snippet exactly as provided (iframe, script, etc.)."
+                widget: "code",
+                default_language: "html",
+                allow_language_selection: false,
+                hint: "Paste the embed snippet exactly as provided (iframe, script, form markup, etc.)."
               }
             ],
             pattern: EMBED_WRAPPER_PATTERN,
