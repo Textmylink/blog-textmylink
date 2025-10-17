@@ -29,30 +29,36 @@ description: "Wedding planning tips, guest communication ideas, and TextMyLink u
   {% endif %}
 
   {% if allPosts | length > 1 %}
-    <section class="post-grid">
-      {% for post in allPosts %}
-        {% if not loop.first and loop.index0 < 5 %}
-          {% set cardImage = post.data.image | default("") | trim %}
-          {% set cardExcerpt = post.data.description or (post.templateContent | striptags | truncate(150, true, "...")) %}
-          <article class="post-card">
-            <a href="{{ post.url }}">
-              {% if cardImage and cardImage | length > 4 %}
-                <div class="post-card__media">
-                  <img src="{{ cardImage }}" alt="{{ post.data.title }} teaser image" loading="lazy">
-                </div>
-              {% else %}
-                <div class="post-card__media post-card__media--placeholder">TextMyLink</div>
-              {% endif %}
-            </a>
-            <div class="post-card__body">
-              <p class="post-card__meta">{{ post.date | readableDate }}</p>
-              <h3><a href="{{ post.url }}">{{ post.data.title }}</a></h3>
-              <p class="post-card__excerpt">{{ cardExcerpt }}</p>
-              <a class="post-card__link" href="{{ post.url }}">Read more &rarr;</a>
-            </div>
-          </article>
-        {% endif %}
+    {% set regularPosts = allPosts | slice(1) %}
+    {% set initialBatchSize = 6 %}
+    <section class="post-grid" data-infinite-scroll data-batch-size="{{ initialBatchSize }}">
+      {% for post in regularPosts %}
+        {% set cardImage = post.data.image | default("") | trim %}
+        {% set cardExcerpt = post.data.description or (post.templateContent | striptags | truncate(150, true, "...")) %}
+        {% set isHidden = loop.index0 >= initialBatchSize %}
+        <article class="post-card{% if isHidden %} post-card--hidden{% endif %}" data-card-index="{{ loop.index0 }}">
+          <a href="{{ post.url }}">
+            {% if cardImage and cardImage | length > 4 %}
+              <div class="post-card__media">
+                <img src="{{ cardImage }}" alt="{{ post.data.title }} teaser image" loading="lazy">
+              </div>
+            {% else %}
+              <div class="post-card__media post-card__media--placeholder">TextMyLink</div>
+            {% endif %}
+          </a>
+          <div class="post-card__body">
+            <p class="post-card__meta">{{ post.date | readableDate }}</p>
+            <h3><a href="{{ post.url }}">{{ post.data.title }}</a></h3>
+            <p class="post-card__excerpt">{{ cardExcerpt }}</p>
+            <a class="post-card__link" href="{{ post.url }}">Read more &rarr;</a>
+          </div>
+        </article>
       {% endfor %}
+      <div class="infinite-scroll-sentinel" aria-hidden="true"></div>
     </section>
   {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/infinite-scroll.js" defer></script>
 {% endblock %}
