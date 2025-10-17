@@ -36,51 +36,65 @@
       })();
 
       function initializeIdentityHandlers() {
-        if (!window.netlifyIdentity) {
-          ensureIdentityLoginPrompt(false);
+        ensureIdentityLoginPrompt(false);
+
+        const readyIdentity = (identity) => {
+          if (!identity) {
+            return;
+          }
+
+          identity.on("init", (user) => {
+            ensureIdentityLoginPrompt(Boolean(user));
+          });
+
+          identity.on("login", () => {
+            ensureIdentityLoginPrompt(true);
+            document.location.href = "/admin/";
+          });
+
+          identity.on("logout", () => {
+            ensureIdentityLoginPrompt(false);
+          });
+
+          try {
+            identity.init();
+            const currentUser =
+              typeof identity.currentUser === "function" ? identity.currentUser() : null;
+            if (currentUser) {
+              ensureIdentityLoginPrompt(true);
+            }
+          } catch (error) {
+            console.error("Failed to initialise Netlify Identity:", error);
+            ensureIdentityLoginPrompt(false);
+          }
+        };
+
+        if (window.netlifyIdentity) {
+          readyIdentity(window.netlifyIdentity);
           return;
         }
 
-        window.netlifyIdentity.on("init", (user) => {
-          ensureIdentityLoginPrompt(Boolean(user));
-        });
-
-        window.netlifyIdentity.on("login", () => {
-          ensureIdentityLoginPrompt(true);
-          document.location.href = "/admin/";
-        });
-
-        window.netlifyIdentity.on("logout", () => {
-          ensureIdentityLoginPrompt(false);
-        });
-
-        try {
-          window.netlifyIdentity.init();
-          const currentUser =
-            typeof window.netlifyIdentity.currentUser === "function"
-              ? window.netlifyIdentity.currentUser()
-              : null;
-          if (currentUser) {
-            ensureIdentityLoginPrompt(true);
+        let attempts = 0;
+        const maxAttempts = 100;
+        const pollForIdentity = () => {
+          attempts += 1;
+          if (window.netlifyIdentity) {
+            readyIdentity(window.netlifyIdentity);
+          } else if (attempts < maxAttempts) {
+            setTimeout(pollForIdentity, 100);
+          } else {
+            console.warn("Netlify Identity failed to load within the expected time.");
+            ensureIdentityLoginPrompt(false);
           }
-        } catch (error) {
-          console.error("Failed to initialise Netlify Identity:", error);
-          ensureIdentityLoginPrompt(false);
-        }
+        };
+
+        pollForIdentity();
       }
 
       function ensureIdentityLoginPrompt(isAuthenticated) {
         const existing = document.getElementById("cms-identity-login");
 
         if (isAuthenticated) {
-          if (existing) {
-            existing.remove();
-          }
-          return;
-        }
-
-        const cmsRoot = document.getElementById("nc-root");
-        if (cmsRoot) {
           if (existing) {
             existing.remove();
           }
@@ -684,8 +698,7 @@
         }
 
         try {
-          const globalConfig =
-            window.__DECAP_CMS_INITIAL_STATE__?.config || window.__NETLIFY_CMS_DATA__?.config || null;
+          const globalConfig = getCmsGlobalConfig();
           if (globalConfig && Array.isArray(globalConfig.collections) && globalConfig.collections.length > 0) {
             const firstWritable = globalConfig.collections.find((collection) => collection && collection.create !== false);
             if (firstWritable && firstWritable.name) {
@@ -697,6 +710,20 @@
         }
 
         return "blog";
+      }
+
+      function getCmsGlobalConfig() {
+        const decapState = window.__DECAP_CMS_INITIAL_STATE__;
+        if (decapState && decapState.config) {
+          return decapState.config;
+        }
+
+        const legacyState = window.__NETLIFY_CMS_DATA__;
+        if (legacyState && legacyState.config) {
+          return legacyState.config;
+        }
+
+        return null;
       }
     </script>
     <style>
