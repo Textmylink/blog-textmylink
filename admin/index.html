@@ -18,6 +18,7 @@
         });
       }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js" integrity="sha256-aBEUNzc7ZhBCVLbfvmCSJuMyc8WHcN1xnYlZq+AD928=" crossorigin="anonymous"></script>
     <script>
       window.process = window.process || { env: { NODE_ENV: "production" } };
       window.CMS_MANUAL_INIT = true;
@@ -29,12 +30,14 @@
           window.CMS.init();
           setupIdentityUI();
           setupMobileEnhancements();
+          setupPreviewTemplates();
           return;
         }
         if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
           window.NetlifyCmsApp.init();
           setupIdentityUI();
           setupMobileEnhancements();
+          setupPreviewTemplates();
           return;
         }
         const message = "Netlify CMS failed to load. Check the browser console for details.";
@@ -76,6 +79,236 @@
           const modal = document.querySelector(".netlify-identity-modal");
           if (modal) {
             observer.observe(modal, { childList: true, subtree: true });
+          }
+        });
+      }
+
+      function setupPreviewTemplates() {
+        if (window.__CMS_POST_PREVIEW_READY__) {
+          return;
+        }
+
+        const cms = window.CMS || window.NetlifyCmsApp;
+        if (!cms || typeof cms.registerPreviewTemplate !== "function") {
+          return;
+        }
+
+        const h =
+          (cms && cms.h) ||
+          (cms && cms.default && cms.default.h) ||
+          (window.preact && window.preact.h) ||
+          window.h ||
+          (window.React && window.React.createElement);
+        if (typeof h !== "function") {
+          console.warn("CMS preview templates: unable to locate the hyperscript helper.");
+          return;
+        }
+
+        window.__CMS_POST_PREVIEW_READY__ = true;
+
+        const renderMarkdown = (markdown) => {
+          if (!markdown) {
+            return "";
+          }
+          const renderer = window.marked;
+          if (renderer) {
+            try {
+              if (typeof renderer.parse === "function") {
+                return renderer.parse(markdown);
+              }
+              if (typeof renderer === "function") {
+                return renderer(markdown);
+              }
+            } catch (error) {
+              console.warn("CMS preview templates: unable to render markdown", error);
+            }
+          }
+          return markdown;
+        };
+
+        const ensureArray = (value) => {
+          if (!value) {
+            return [];
+          }
+          if (typeof value.toArray === "function") {
+            return value.toArray();
+          }
+          return Array.isArray(value) ? value : [value];
+        };
+
+        const formatDate = (value) => {
+          if (!value) {
+            return "";
+          }
+          try {
+            const date = new Date(value);
+            if (!Number.isNaN(date.getTime())) {
+              return date.toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+              });
+            }
+          } catch (error) {
+            console.warn("CMS preview templates: unable to format date", error);
+          }
+          return String(value);
+        };
+
+        const PostPreview = (props) => {
+          const entry = props.entry;
+          const title = entry.getIn(["data", "title"]);
+          const description = entry.getIn(["data", "description"]);
+          const bodyMarkdown = entry.getIn(["data", "body"]) || "";
+          const date = entry.getIn(["data", "date"]);
+          const tags = ensureArray(entry.getIn(["data", "tags"]))
+            .map((tag) => (tag == null ? "" : String(tag)))
+            .filter((tag) => tag.length > 0);
+
+          const content = [];
+
+          if (title) {
+            content.push(
+              h("h1", { className: "cms-post-preview__title" }, title)
+            );
+          }
+
+          if (description) {
+            content.push(
+              h("p", { className: "cms-post-preview__description" }, description)
+            );
+          }
+
+          if (date || tags.length > 0) {
+            const metaChildren = [];
+            if (date) {
+              metaChildren.push(
+                h("span", { className: "cms-post-preview__meta-date" }, formatDate(date))
+              );
+            }
+            if (tags.length > 0) {
+              metaChildren.push(
+                h(
+                  "span",
+                  { className: "cms-post-preview__meta-tags" },
+                  tags.join(", ")
+                )
+              );
+            }
+            content.push(
+              h("p", { className: "cms-post-preview__meta" }, metaChildren)
+            );
+          }
+
+          content.push(
+            h("div", {
+              className: "cms-post-preview__body",
+              dangerouslySetInnerHTML: { __html: renderMarkdown(bodyMarkdown) }
+            })
+          );
+
+          return h("article", { className: "cms-post-preview" }, content);
+        };
+
+        if (typeof cms.registerPreviewStyle === "function") {
+          cms.registerPreviewStyle(
+            `
+              .cms-post-preview {
+                font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                color: #1f2933;
+                background: #ffffff;
+                line-height: 1.7;
+                max-width: 48rem;
+                margin: 0 auto;
+                padding: 1.5rem;
+              }
+              .cms-post-preview__title {
+                font-size: 2.25rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
+                line-height: 1.2;
+              }
+              .cms-post-preview__description {
+                font-size: 1.1rem;
+                color: #475569;
+                margin-bottom: 1.5rem;
+              }
+              .cms-post-preview__meta {
+                font-size: 0.95rem;
+                color: #64748b;
+                margin-bottom: 1.5rem;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.75rem;
+              }
+              .cms-post-preview__meta-date::before {
+                content: "📅";
+                margin-right: 0.4rem;
+              }
+              .cms-post-preview__meta-tags::before {
+                content: "🏷️";
+                margin-right: 0.4rem;
+              }
+              .cms-post-preview__body h2 {
+                font-size: 1.75rem;
+                margin-top: 2.5rem;
+                margin-bottom: 1rem;
+              }
+              .cms-post-preview__body h3 {
+                font-size: 1.4rem;
+                margin-top: 2rem;
+                margin-bottom: 0.75rem;
+              }
+              .cms-post-preview__body p {
+                margin-bottom: 1.25rem;
+              }
+              .cms-post-preview__body ul,
+              .cms-post-preview__body ol {
+                margin-left: 1.5rem;
+                margin-bottom: 1.25rem;
+              }
+              .cms-post-preview__body blockquote {
+                border-left: 4px solid #3b82f6;
+                margin: 2rem 0;
+                padding: 0.75rem 1.5rem;
+                background: #eff6ff;
+                color: #1e3a8a;
+              }
+              .cms-post-preview__body pre {
+                background: #0f172a;
+                color: #f8fafc;
+                padding: 1rem;
+                border-radius: 0.5rem;
+                overflow-x: auto;
+                margin-bottom: 1.5rem;
+              }
+              .cms-post-preview__body code {
+                background: #f1f5f9;
+                padding: 0.15rem 0.35rem;
+                border-radius: 0.35rem;
+              }
+              .cms-post-preview__body img,
+              .cms-post-preview__body iframe,
+              .cms-post-preview__body video {
+                max-width: 100%;
+                width: 100%;
+                border-radius: 0.5rem;
+                margin: 1.5rem 0;
+              }
+              .cms-post-preview__body iframe {
+                min-height: 320px;
+                border: none;
+              }
+            `,
+            { raw: true }
+          );
+        }
+
+        ["blog_drafts", "blog_published"].forEach((collection) => {
+          try {
+            cms.registerPreviewTemplate(collection, PostPreview);
+          } catch (error) {
+            console.warn(`CMS preview templates: unable to register preview for ${collection}`, error);
           }
         });
       }

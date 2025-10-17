@@ -72,7 +72,6 @@ collections:
         name: "body"
         widget: "markdown"
         required: false
-        sanitize_preview: false
       - label: "Layout"
         name: "layout"
         widget: "hidden"
