@@ -448,6 +448,25 @@ main > *:first-child {
   margin: 2rem auto;
 }
 
+.post-body .post-embed {
+  margin: 2.5rem 0;
+}
+
+.post-body .post-embed :is(iframe, video) {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 18px;
+}
+
+.post-body .post-embed iframe {
+  border: none;
+  min-height: 320px;
+}
+
+.post-body .post-embed form {
+  width: 100%;
+}
+
 .post-body blockquote {
   margin: 2.5rem 0;
   padding: 1.5rem 2rem;

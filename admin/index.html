@@ -31,6 +31,7 @@
           setupIdentityUI();
           setupMobileEnhancements();
           setupPreviewTemplates();
+          setupEmbedComponent();
           return;
         }
         if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
@@ -38,6 +39,7 @@
           setupIdentityUI();
           setupMobileEnhancements();
           setupPreviewTemplates();
+          setupEmbedComponent();
           return;
         }
         const message = "Netlify CMS failed to load. Check the browser console for details.";
@@ -299,6 +301,18 @@
                 min-height: 320px;
                 border: none;
               }
+              .cms-post-preview__body .post-embed {
+                margin: 1.75rem 0;
+              }
+              .cms-post-preview__body .post-embed > :is(iframe, video) {
+                width: 100%;
+                max-width: 100%;
+                border-radius: 0.5rem;
+              }
+              .cms-post-preview__body .post-embed iframe {
+                min-height: 320px;
+                border: none;
+              }
             `,
             { raw: true }
           );
@@ -311,6 +325,105 @@
             console.warn(`CMS preview templates: unable to register preview for ${collection}`, error);
           }
         });
+      }
+
+      function setupEmbedComponent() {
+        if (window.__CMS_EMBED_COMPONENT_READY__) {
+          return;
+        }
+
+        const cms = window.CMS || window.NetlifyCmsApp;
+        if (!cms || typeof cms.registerEditorComponent !== "function") {
+          console.warn("CMS embed component: registerEditorComponent is unavailable.");
+          return;
+        }
+
+        window.__CMS_EMBED_COMPONENT_READY__ = true;
+
+        const EMBED_WRAPPER_PATTERN = /<div[^>]*class=["'][^"']*post-embed[^"']*["'][^>]*>([\s\S]*?)<\/div>/i;
+
+        const unwrapEmbedHtml = (markup) => {
+          if (!markup) {
+            return "";
+          }
+          const match = markup.match(EMBED_WRAPPER_PATTERN);
+          if (match && match[1]) {
+            return match[1].trim();
+          }
+          return markup.trim();
+        };
+
+        const wrapEmbedHtml = (raw) => {
+          if (!raw) {
+            return "";
+          }
+          const trimmed = String(raw).trim();
+          if (!trimmed) {
+            return "";
+          }
+          if (/class\s*=\s*["'][^"']*post-embed[^"']*["']/i.test(trimmed.split("\n")[0])) {
+            return trimmed;
+          }
+          const indented = trimmed.replace(/\n/g, "\n  ");
+          return `<div class="post-embed">\n  ${indented}\n</div>`;
+        };
+
+        try {
+          cms.registerEditorComponent({
+            id: "post-embed",
+            label: "Embed Code",
+            fields: [
+              {
+                name: "code",
+                label: "Embed HTML",
+                widget: "text",
+                hint: "Paste the embed snippet exactly as provided (iframe, script, etc.)."
+              }
+            ],
+            pattern: EMBED_WRAPPER_PATTERN,
+            fromBlock: (match) => ({ code: unwrapEmbedHtml(match && match[0] ? match[0] : "") }),
+            toBlock: (data) => wrapEmbedHtml(data && data.code),
+            toPreview: (data) => {
+              const html = wrapEmbedHtml(data && data.code);
+              if (!html) {
+                return '<div class="cms-embed-block cms-embed-block--empty">Embed: paste HTML to preview it.</div>';
+              }
+              return `<div class="cms-embed-block">${html}</div>`;
+            }
+          });
+        } catch (error) {
+          console.warn("CMS embed component: unable to register", error);
+        }
+
+        try {
+          cms.registerPreviewStyle(
+            `
+              .cms-embed-block {
+                border: 1px dashed #a5b4fc;
+                border-radius: 0.75rem;
+                padding: 1rem;
+                margin: 1.5rem 0;
+                background: #eef2ff;
+              }
+              .cms-embed-block--empty {
+                color: #4338ca;
+                font-style: italic;
+              }
+              .cms-embed-block .post-embed {
+                margin: 0;
+              }
+              .cms-embed-block iframe {
+                width: 100%;
+                min-height: 320px;
+                border: none;
+                border-radius: 0.5rem;
+              }
+            `,
+            { raw: true }
+          );
+        } catch (error) {
+          console.warn("CMS embed component: unable to register preview styles", error);
+        }
       }
 
       function setupMobileEnhancements() {
