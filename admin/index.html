@@ -24,14 +24,65 @@
     </script>
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
     <script>
+      function registerCmsExtensions(cms) {
+        if (!cms || typeof cms.registerEditorComponent !== "function") {
+          return;
+        }
+
+        if (registerCmsExtensions.__didRegister) {
+          return;
+        }
+
+        if (typeof cms.registerPreviewStyle === "function") {
+          cms.registerPreviewStyle("/static/css/main.css");
+        }
+
+        cms.registerEditorComponent({
+          id: "raw-html-embed",
+          label: "Embed Code",
+          fields: [
+            {
+              label: "Embed HTML",
+              name: "code",
+              widget: "text",
+              hint: "Paste the embed snippet (iframe, script, etc.)."
+            }
+          ],
+          pattern: /^<figure class="post-embed">\s*([\s\S]*?)\s*<\/figure>$/m,
+          fromBlock(match) {
+            return {
+              code: (match && match[1] ? match[1] : "").trim()
+            };
+          },
+          toBlock({ code = "" }) {
+            const snippet = String(code).trim();
+            if (!snippet) {
+              return "";
+            }
+            return `<figure class="post-embed">\n${snippet}\n</figure>`;
+          },
+          toPreview({ code = "" }) {
+            const snippet = String(code).trim();
+            if (!snippet) {
+              return "<em>No embed code provided.</em>";
+            }
+            return `<div class="post-embed">${snippet}</div>`;
+          }
+        });
+
+        registerCmsExtensions.__didRegister = true;
+      }
+
       (function initCms() {
         if (window.CMS && typeof window.CMS.init === "function") {
+          registerCmsExtensions(window.CMS);
           window.CMS.init();
           setupIdentityUI();
           setupMobileEnhancements();
           return;
         }
         if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
+          registerCmsExtensions(window.NetlifyCmsApp);
           window.NetlifyCmsApp.init();
           setupIdentityUI();
           setupMobileEnhancements();
