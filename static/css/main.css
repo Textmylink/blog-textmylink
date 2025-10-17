@@ -200,6 +200,31 @@ a:focus {
   border-radius: 12px;
 }
 
+.post-body .post-embed,
+.post__content .post-embed {
+  margin: calc(var(--spacing) * 1.75) 0;
+  width: 100%;
+}
+
+.post-body .post-embed > *,
+.post__content .post-embed > * {
+  max-width: 100%;
+}
+
+.post-body .post-embed iframe,
+.post-body .post-embed video,
+.post-body .post-embed object,
+.post-body .post-embed embed,
+.post__content .post-embed iframe,
+.post__content .post-embed video,
+.post__content .post-embed object,
+.post__content .post-embed embed {
+  width: 100%;
+  height: auto;
+  border: 0;
+  border-radius: 12px;
+}
+
 .post__tags a {
   margin-right: 0.35rem;
 }

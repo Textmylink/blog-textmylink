@@ -23,15 +23,68 @@
       window.CMS_MANUAL_INIT = true;
     </script>
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    <script src="https://unpkg.com/turndown@7.1.2/dist/turndown.js"></script>
     <script>
+      function registerCmsExtensions(cms) {
+        if (!cms || typeof cms.registerEditorComponent !== "function") {
+          return;
+        }
+
+        if (registerCmsExtensions.__didRegister) {
+          return;
+        }
+
+        if (typeof cms.registerPreviewStyle === "function") {
+          cms.registerPreviewStyle("/static/css/main.css");
+        }
+
+        setupHtmlToMarkdownPaste();
+        cms.registerEditorComponent({
+          id: "raw-html-embed",
+          label: "Embed Code",
+          fields: [
+            {
+              label: "Embed HTML",
+              name: "code",
+              widget: "text",
+              hint: "Paste the embed snippet (iframe, script, etc.)."
+            }
+          ],
+          pattern: /^<figure class="post-embed">\s*([\s\S]*?)\s*<\/figure>$/m,
+          fromBlock(match) {
+            return {
+              code: (match && match[1] ? match[1] : "").trim()
+            };
+          },
+          toBlock({ code = "" }) {
+            const snippet = String(code).trim();
+            if (!snippet) {
+              return "";
+            }
+            return `<figure class="post-embed">\n${snippet}\n</figure>`;
+          },
+          toPreview({ code = "" }) {
+            const snippet = String(code).trim();
+            if (!snippet) {
+              return "<em>No embed code provided.</em>";
+            }
+            return `<div class="post-embed">${snippet}</div>`;
+          }
+        });
+
+        registerCmsExtensions.__didRegister = true;
+      }
+
       (function initCms() {
         if (window.CMS && typeof window.CMS.init === "function") {
+          registerCmsExtensions(window.CMS);
           window.CMS.init();
           setupIdentityUI();
           setupMobileEnhancements();
           return;
         }
         if (window.NetlifyCmsApp && typeof window.NetlifyCmsApp.init === "function") {
+          registerCmsExtensions(window.NetlifyCmsApp);
           window.NetlifyCmsApp.init();
           setupIdentityUI();
           setupMobileEnhancements();
@@ -41,6 +94,175 @@
         console.error(message);
         document.body.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
       })();
+
+      function setupHtmlToMarkdownPaste() {
+        if (setupHtmlToMarkdownPaste.__initialized) {
+          return;
+        }
+
+        const Turndown = window.TurndownService || window.turndownService;
+        if (typeof Turndown !== "function") {
+          console.warn("TurndownService is not available. HTML paste conversion disabled.");
+          return;
+        }
+
+        const turndown = new Turndown({
+          headingStyle: "atx",
+          codeBlockStyle: "fenced",
+          bulletListMarker: "-",
+          strongDelimiter: "**",
+          emDelimiter: "_"
+        });
+
+        if (typeof turndown.keep === "function") {
+          turndown.keep(["iframe", "script", "figure"]);
+        }
+
+        const cleanClipboardHtml = (rawHtml) => {
+          if (!rawHtml) {
+            return "";
+          }
+
+          const withoutComments = rawHtml
+            .replace(/<!--StartFragment-->/gi, "")
+            .replace(/<!--EndFragment-->/gi, "")
+            .replace(/<meta[^>]*charset[^>]*>/gi, "");
+
+          const bodyMatch = withoutComments.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+          const html = bodyMatch ? bodyMatch[1] : withoutComments;
+          return html.trim();
+        };
+
+        const hasMeaningfulHtml = (html) => {
+          if (!html) {
+            return false;
+          }
+
+          return /<\s*(p|div|h[1-6]|ul|ol|li|blockquote|pre|code|span|a|strong|em|table|thead|tbody|tr|td|th|figure|img|iframe|section|article|br)[^>]*>/i.test(
+            html
+          );
+        };
+
+        const findEditableTarget = (target) => {
+          if (!target) {
+            return null;
+          }
+
+          if (target.nodeType === Node.TEXT_NODE) {
+            target = target.parentElement;
+          }
+
+          if (!target) {
+            return null;
+          }
+
+          const editable = target.closest('[contenteditable="true"]');
+          if (editable) {
+            return editable;
+          }
+
+          if (target.tagName === "TEXTAREA") {
+            return target;
+          }
+
+          const textarea = target.closest("textarea");
+          if (textarea) {
+            return textarea;
+          }
+
+          return null;
+        };
+
+        const isMarkdownWidgetTarget = (target) => {
+          if (!target) {
+            return false;
+          }
+
+          const container = target.closest(".cms-editor-raw, .cms-editor-visual");
+          return Boolean(container);
+        };
+
+        const insertMarkdown = (target, markdown) => {
+          if (!target || !markdown) {
+            return false;
+          }
+
+          if (target.isContentEditable) {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) {
+              return false;
+            }
+
+            selection.deleteFromDocument();
+            selection.getRangeAt(0).insertNode(document.createTextNode(markdown));
+            selection.collapseToEnd();
+            const event = new Event("input", { bubbles: true });
+            target.dispatchEvent(event);
+            return true;
+          }
+
+          if (target.tagName === "TEXTAREA") {
+            const { selectionStart, selectionEnd, value } = target;
+            const before = value.slice(0, selectionStart);
+            const after = value.slice(selectionEnd);
+            const nextValue = `${before}${markdown}${after}`;
+            const cursor = selectionStart + markdown.length;
+            target.value = nextValue;
+            target.setSelectionRange(cursor, cursor);
+            const event = new Event("input", { bubbles: true });
+            target.dispatchEvent(event);
+            return true;
+          }
+
+          return false;
+        };
+
+        document.addEventListener(
+          "paste",
+          (event) => {
+            if (!event || event.defaultPrevented || event.shiftKey) {
+              return;
+            }
+
+            const editableTarget = findEditableTarget(event.target);
+            if (!editableTarget || !isMarkdownWidgetTarget(editableTarget)) {
+              return;
+            }
+
+            const clipboard = event.clipboardData || window.clipboardData;
+            if (!clipboard) {
+              return;
+            }
+
+            const rawHtml = cleanClipboardHtml(clipboard.getData("text/html"));
+            if (!hasMeaningfulHtml(rawHtml)) {
+              return;
+            }
+
+            let markdown = "";
+            try {
+              markdown = turndown.turndown(rawHtml);
+            } catch (error) {
+              console.error("Failed to convert pasted HTML to Markdown:", error);
+              return;
+            }
+
+            const trimmedMarkdown = markdown.trim();
+            if (!trimmedMarkdown) {
+              return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const insertion = `${trimmedMarkdown.replace(/\s+$/, "")}\n\n`;
+            insertMarkdown(editableTarget, insertion);
+          },
+          true
+        );
+
+        setupHtmlToMarkdownPaste.__initialized = true;
+      }
 
       function setupIdentityUI() {
         if (!window.netlifyIdentity) {
