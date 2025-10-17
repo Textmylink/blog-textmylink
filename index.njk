@@ -30,40 +30,52 @@ description: "Wedding planning tips, guest communication ideas, and TextMyLink u
 
   {% if allPosts | length > 1 %}
     {% set initialBatchSize = 6 %}
-    {% set allRegularPosts = allPosts | slice(1) %}
-    {% set regularPosts = allRegularPosts | slice(0, initialBatchSize) %}
-    {% set totalRegularCount = allRegularPosts | length %}
-    {% set totalPages = ((totalRegularCount + initialBatchSize - 1) / initialBatchSize) | int %}
+    {% set totalRegularCount = (allPosts | length) - 1 %}
+    {% if totalRegularCount < 0 %}
+      {% set totalRegularCount = 0 %}
+    {% endif %}
+    {% if totalRegularCount > 0 and initialBatchSize > 0 %}
+      {% set totalPages = ((totalRegularCount + initialBatchSize - 1) / initialBatchSize) | int %}
+    {% else %}
+      {% set totalPages = 0 %}
+    {% endif %}
     {% set hasMorePages = totalPages > 1 %}
+    {% if hasMorePages %}
+      {% set nextPage = 2 %}
+    {% else %}
+      {% set nextPage = 0 %}
+    {% endif %}
     <section
       class="post-grid"
       data-infinite-scroll
       data-page-size="{{ initialBatchSize }}"
-      data-next-page="{% if hasMorePages %}2{% else %}0{% endif %}"
+      data-next-page="{{ nextPage }}"
       data-total-pages="{{ totalPages }}"
       data-endpoint-root="/api/posts/page-"
       data-endpoint-extension=".json"
     >
-      {% for post in regularPosts %}
-        {% set cardImage = post.data.image | default("") | trim %}
-        {% set cardExcerpt = post.data.description or (post.templateContent | striptags | truncate(150, true, "...")) %}
-        <article class="post-card" data-card-index="{{ loop.index0 }}">
-          <a href="{{ post.url }}">
-            {% if cardImage and cardImage | length > 4 %}
-              <div class="post-card__media">
-                <img src="{{ cardImage }}" alt="{{ post.data.title }} teaser image" loading="lazy">
-              </div>
-            {% else %}
-              <div class="post-card__media post-card__media--placeholder">TextMyLink</div>
-            {% endif %}
-          </a>
-          <div class="post-card__body">
-            <p class="post-card__meta">{{ post.date | readableDate }}</p>
-            <h3><a href="{{ post.url }}">{{ post.data.title }}</a></h3>
-            <p class="post-card__excerpt">{{ cardExcerpt }}</p>
-            <a class="post-card__link" href="{{ post.url }}">Read more &rarr;</a>
-          </div>
-        </article>
+      {% for post in allPosts %}
+        {% if loop.index0 > 0 and loop.index0 <= initialBatchSize %}
+          {% set cardImage = post.data.image | default("") | trim %}
+          {% set cardExcerpt = post.data.description or (post.templateContent | striptags | truncate(150, true, "...")) %}
+          <article class="post-card" data-card-index="{{ loop.index0 }}">
+            <a href="{{ post.url }}">
+              {% if cardImage and cardImage | length > 4 %}
+                <div class="post-card__media">
+                  <img src="{{ cardImage }}" alt="{{ post.data.title }} teaser image" loading="lazy">
+                </div>
+              {% else %}
+                <div class="post-card__media post-card__media--placeholder">TextMyLink</div>
+              {% endif %}
+            </a>
+            <div class="post-card__body">
+              <p class="post-card__meta">{{ post.date | readableDate }}</p>
+              <h3><a href="{{ post.url }}">{{ post.data.title }}</a></h3>
+              <p class="post-card__excerpt">{{ cardExcerpt }}</p>
+              <a class="post-card__link" href="{{ post.url }}">Read more &rarr;</a>
+            </div>
+          </article>
+        {% endif %}
       {% endfor %}
       {% if hasMorePages %}
         <div class="infinite-scroll-sentinel" aria-hidden="true"></div>
