@@ -82,24 +82,24 @@
   <nav class="neighbor-posts" aria-label="Post pagination">
     {% if previousPost %}
       <a class="neighbor-posts__link neighbor-posts__link--prev" href="{{ previousPost.url }}">
-        <span class="neighbor-posts__label">Previous Post</span>
-        <span class="neighbor-posts__title">{{ previousPost.data.title }}</span>
-      </a>
-    {% else %}
-      <span class="neighbor-posts__placeholder">
-        <span class="neighbor-posts__label">Previous Post</span>
-        <span class="neighbor-posts__title">You're reading the newest story.</span>
-      </span>
-    {% endif %}
-    {% if nextPost %}
-      <a class="neighbor-posts__link neighbor-posts__link--next" href="{{ nextPost.url }}">
         <span class="neighbor-posts__label">Next Post</span>
-        <span class="neighbor-posts__title">{{ nextPost.data.title }}</span>
+        <span class="neighbor-posts__title">{{ previousPost.data.title }}</span>
       </a>
     {% else %}
       <span class="neighbor-posts__placeholder">
         <span class="neighbor-posts__label">Next Post</span>
         <span class="neighbor-posts__title">More stories coming soon.</span>
+      </span>
+    {% endif %}
+    {% if nextPost %}
+      <a class="neighbor-posts__link neighbor-posts__link--next" href="{{ nextPost.url }}">
+        <span class="neighbor-posts__label">Previous Post</span>
+        <span class="neighbor-posts__title">{{ nextPost.data.title }}</span>
+      </a>
+    {% else %}
+      <span class="neighbor-posts__placeholder">
+        <span class="neighbor-posts__label">Previous Post</span>
+        <span class="neighbor-posts__title">You're reading the newest story.</span>
       </span>
     {% endif %}
   </nav>
