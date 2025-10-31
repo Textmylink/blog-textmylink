@@ -10,7 +10,8 @@ seo_description: Learn how to print wedding envelopes and labels at home using
 date: 2025-10-31T11:23:00.000-07:00
 tags:
   - blog
-seo_image: /uploads/img_0719.jpeg
+image: /uploads/img_0719.jpeg
+seo_image: ""
 author: Daniel Schulman
 layout: post.njk
 ---
